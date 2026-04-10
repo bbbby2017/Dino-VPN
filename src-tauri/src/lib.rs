@@ -252,6 +252,11 @@ pub fn run() {
             resolve::resolve_setup_sync();
             resolve::init_signal();
 
+            crate::process::AsyncHandler::spawn(|| async move {
+                crate::utils::channel::apply_channel_config().await;
+            });
+
+
             logging!(info, Type::Setup, "初始化已启动");
             Ok(())
         })

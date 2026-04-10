@@ -1018,6 +1018,11 @@ Section Install
     Call CreateOrUpdateDesktopShortcut
   ${EndIf}
 
+  ; Write the installer's Executable Name to a file so that the main program can detect the channel
+  FileOpen $9 "$INSTDIR\installer_name.txt" w
+  FileWrite $9 "$EXEFILE"
+  FileClose $9
+
   !ifmacrodef NSIS_HOOK_POSTINSTALL
     !insertmacro NSIS_HOOK_POSTINSTALL
   !endif

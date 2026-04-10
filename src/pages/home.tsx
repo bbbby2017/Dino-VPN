@@ -24,6 +24,7 @@ import {
 import { useLockFn } from 'ahooks'
 import { Suspense, lazy, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router'
 
 import { BasePage } from '@/components/base'
 import { ClashModeCard } from '@/components/home/clash-mode-card'
@@ -209,6 +210,7 @@ const HomeSettingsDialog = ({
 }
 
 const HomePage = () => {
+  const navigate = useNavigate()
   const { t } = useTranslation()
   const { verge } = useVerge()
   const { current, mutateProfiles } = useProfiles()
@@ -368,6 +370,26 @@ const HomePage = () => {
       contentStyle={{ padding: 2 }}
       header={
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Button
+            variant="text"
+            color="inherit"
+            size="small"
+            onClick={() => navigate('/connections')}
+            startIcon={<DnsOutlined />}
+            sx={{ fontWeight: 'bold' }}
+          >
+            连接
+          </Button>
+          <Button
+            variant="text"
+            color="inherit"
+            size="small"
+            onClick={() => navigate('/logs')}
+            startIcon={<HistoryEduOutlined />}
+            sx={{ mr: 1, fontWeight: 'bold' }}
+          >
+            日志
+          </Button>
           <Tooltip title={t('home.page.tooltips.lightweightMode')} arrow>
             <IconButton
               onClick={async () => await entry_lightweight_mode()}

@@ -17,3 +17,8 @@ CLAUDE.md
 .vfox.toml
 .vfox/
 .claude
+openspec/
+.agent/
+.codex/
+.github/prompts/
+.github/skills/

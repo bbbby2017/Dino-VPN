@@ -1,6 +1,8 @@
-import { Typography } from '@mui/material'
+import { ArrowBack } from '@mui/icons-material'
+import { IconButton, Typography } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
 import React, { ReactNode } from 'react'
+import { useLocation, useNavigate } from 'react-router'
 
 import { BaseErrorBoundary } from './base-error-boundary'
 
@@ -15,6 +17,8 @@ interface Props {
 export const BasePage: React.FC<Props> = (props) => {
   const { title, header, contentStyle, full, children } = props
   const theme = useTheme()
+  const { pathname } = useLocation()
+  const navigate = useNavigate()
 
   const isDark = theme.palette.mode === 'dark'
 
@@ -22,14 +26,32 @@ export const BasePage: React.FC<Props> = (props) => {
     <BaseErrorBoundary>
       <div className="base-page">
         <header data-tauri-drag-region="true" style={{ userSelect: 'none' }}>
-          <Typography
-            sx={{ fontSize: '20px', fontWeight: '700 ' }}
-            data-tauri-drag-region="true"
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              pointerEvents: 'auto',
+            }}
           >
-            {title}
-          </Typography>
+            {pathname !== '/' && (
+              <IconButton
+                onClick={() => navigate('/')}
+                edge="start"
+                sx={{ mr: 1 }}
+                size="small"
+              >
+                <ArrowBack />
+              </IconButton>
+            )}
+            <Typography
+              sx={{ fontSize: '20px', fontWeight: '700 ' }}
+              data-tauri-drag-region="true"
+            >
+              {title}
+            </Typography>
+          </div>
 
-          {header}
+          <div style={{ pointerEvents: 'auto' }}>{header}</div>
         </header>
 
         <div
