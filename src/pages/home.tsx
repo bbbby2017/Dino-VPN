@@ -231,7 +231,13 @@ const HomePage = () => {
 
   // Check if first run (no profiles)
   useEffect(() => {
-    if (profiles && (!profiles.items || profiles.items.length === 0)) {
+    if (!profiles) return // data not loaded yet
+    const items = profiles.items ?? []
+    // Filter to only remote/local subscriptions (exclude merge/script extensions)
+    const realProfiles = items.filter(
+      (p) => p.type === 'remote' || p.type === 'local',
+    )
+    if (realProfiles.length === 0) {
       setWelcomeOpen(true)
     }
   }, [profiles])
