@@ -10,6 +10,7 @@ import {
   Box,
   Button,
   Checkbox,
+  CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
@@ -19,10 +20,12 @@ import {
   Grid,
   IconButton,
   Skeleton,
+  TextField,
   Tooltip,
+  Typography,
 } from '@mui/material'
 import { useLockFn } from 'ahooks'
-import { Suspense, lazy, useCallback, useMemo, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 
@@ -35,7 +38,12 @@ import { HomeProfileCard } from '@/components/home/home-profile-card'
 import { ProxyTunCard } from '@/components/home/proxy-tun-card'
 import { useProfiles } from '@/hooks/use-profiles'
 import { useVerge } from '@/hooks/use-verge'
-import { entry_lightweight_mode, openWebUrl } from '@/services/cmds'
+import {
+  entry_lightweight_mode,
+  importProfile,
+  openWebUrl,
+  patchProfilesConfig,
+} from '@/services/cmds'
 
 const LazyTestCard = lazy(() =>
   import('@/components/home/test-card').then((module) => ({
@@ -213,7 +221,43 @@ const HomePage = () => {
   const navigate = useNavigate()
   const { t } = useTranslation()
   const { verge } = useVerge()
-  const { current, mutateProfiles } = useProfiles()
+  const { profiles, current, mutateProfiles } = useProfiles()
+
+  // Welcome dialog state
+  const [welcomeOpen, setWelcomeOpen] = useState(false)
+  const [subUrl, setSubUrl] = useState('')
+  const [importing, setImporting] = useState(false)
+  const [importError, setImportError] = useState('')
+
+  // Check if first run (no profiles)
+  useEffect(() => {
+    if (profiles && (!profiles.items || profiles.items.length === 0)) {
+      setWelcomeOpen(true)
+    }
+  }, [profiles])
+
+  const handleImportSub = useCallback(async () => {
+    const url = subUrl.trim()
+    if (!url) return
+    setImporting(true)
+    setImportError('')
+    try {
+      await importProfile(url)
+      await mutateProfiles()
+      // auto-activate the first profile
+      const updated = await (await import('@/services/cmds')).getProfiles()
+      if (updated?.items?.length) {
+        const uid = updated.items[0]!.uid
+        await patchProfilesConfig({ current: uid })
+        await mutateProfiles()
+      }
+      setWelcomeOpen(false)
+    } catch (e: any) {
+      setImportError(String(e?.message || e || '导入失败'))
+    } finally {
+      setImporting(false)
+    }
+  }, [subUrl, mutateProfiles])
 
   // 设置弹窗的状态
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -426,6 +470,47 @@ const HomePage = () => {
         homeCards={effectiveHomeCards}
         onSave={handleSaveSettings}
       />
+
+      {/* 首次启动欢迎弹窗 */}
+      <Dialog open={welcomeOpen} maxWidth="sm" fullWidth disableEscapeKeyDown>
+        <DialogTitle sx={{ fontWeight: 700, fontSize: 22 }}>
+          🎉 欢迎使用
+        </DialogTitle>
+        <DialogContent>
+          <Typography sx={{ mb: 2, color: 'text.secondary' }}>
+            检测到您是首次启动，请粘贴您的订阅链接以快速开始：
+          </Typography>
+          <TextField
+            autoFocus
+            fullWidth
+            variant="outlined"
+            placeholder="https://example.com/subscribe?token=xxx"
+            value={subUrl}
+            onChange={(e) => setSubUrl(e.target.value)}
+            disabled={importing}
+            error={!!importError}
+            helperText={importError || ''}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && subUrl.trim()) {
+                handleImportSub()
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button onClick={() => setWelcomeOpen(false)} disabled={importing}>
+            稍后手动添加
+          </Button>
+          <Button
+            variant="contained"
+            onClick={handleImportSub}
+            disabled={importing || !subUrl.trim()}
+            startIcon={importing ? <CircularProgress size={16} /> : null}
+          >
+            {importing ? '正在导入...' : '确认导入'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </BasePage>
   )
 }
