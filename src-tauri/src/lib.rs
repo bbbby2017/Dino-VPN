@@ -256,7 +256,6 @@ pub fn run() {
                 crate::utils::channel::apply_channel_config().await;
             });
 
-
             logging!(info, Type::Setup, "初始化已启动");
             Ok(())
         })
