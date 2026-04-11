@@ -102,6 +102,32 @@ jobs:
         env:
           NODE_OPTIONS: '--max_old_space_size=4096'
 
+      - name: Ad-hoc sign and repack DMG (macOS only)
+        if: startsWith(matrix.os, 'macos')
+        run: |
+          APP_PATH="target/${{ matrix.target }}/release/bundle/macos/Clash Verge.app"
+          DMG_DIR="target/${{ matrix.target }}/release/bundle/dmg"
+
+          echo "==> Signing .app with ad-hoc identity..."
+          codesign --force --deep --sign - "$APP_PATH"
+          codesign --verify "$APP_PATH" && echo "==> Signature OK" || echo "==> Signature verify failed (non-fatal)"
+
+          echo "==> Removing old DMG..."
+          rm -f "$DMG_DIR"/*.dmg
+
+          echo "==> Creating new signed DMG..."
+          DMG_NAME=$(ls "$DMG_DIR"/../../../bundle/dmg/ 2>/dev/null || true)
+          VERSION=$(cat package.json | python3 -c "import sys,json;print(json.load(sys.stdin)['version'])")
+          if [ "${{ matrix.target }}" == "aarch64-apple-darwin" ]; then
+            ARCH="aarch64"
+          else
+            ARCH="x64"
+          fi
+          DMG_FILE="$DMG_DIR/Clash Verge_${VERSION}_${ARCH}.dmg"
+
+          hdiutil create -volname "Clash Verge" -srcfolder "$APP_PATH" -ov -format UDZO "$DMG_FILE"
+          echo "==> DMG created: $DMG_FILE"
+
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
