@@ -39,6 +39,7 @@ import { ProxyTunCard } from '@/components/home/proxy-tun-card'
 import { useProfiles } from '@/hooks/use-profiles'
 import { useVerge } from '@/hooks/use-verge'
 import {
+  enhanceProfiles,
   entry_lightweight_mode,
   importProfile,
   openWebUrl,
@@ -256,6 +257,8 @@ const HomePage = () => {
         const uid = updated.items[0]!.uid
         await patchProfilesConfig({ current: uid })
         await mutateProfiles()
+        // trigger core engine reload so nodes are available immediately
+        await enhanceProfiles()
       }
       setWelcomeOpen(false)
     } catch (e: any) {
