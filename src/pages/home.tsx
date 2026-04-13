@@ -41,8 +41,10 @@ import { useVerge } from '@/hooks/use-verge'
 import {
   enhanceProfiles,
   entry_lightweight_mode,
+  getProfiles,
   importProfile,
   openWebUrl,
+  patchProfilesConfig,
 } from '@/services/cmds'
 
 const LazyTestCard = lazy(() =>
@@ -248,19 +250,30 @@ const HomePage = () => {
     setImporting(true)
     setImportError('')
     try {
-      // import_profile backend already:
-      // 1. downloads the subscription
-      // 2. appends to profile list
-      // 3. auto-sets as current if it's the first remote/local profile
+      // 1. snapshot existing profile UIDs
+      const before = await getProfiles()
+      const beforeUids = new Set((before?.items ?? []).map((i) => i.uid))
+
+      // 2. import the subscription (downloads + appends to list)
       await importProfile(url)
 
-      // refresh UI to pick up the new profile
+      // 3. wait for backend to fully write the config file
+      await new Promise((r) => setTimeout(r, 500))
+
+      // 4. find the newly added profile
+      const after = await getProfiles()
+      const newItem = (after?.items ?? []).find((i) => !beforeUids.has(i.uid))
+
+      // 5. explicitly activate the new profile as current
+      if (newItem) {
+        await patchProfilesConfig({ current: newItem.uid })
+      }
+
+      // 6. refresh UI
       await mutateProfiles()
 
-      // small delay to ensure backend has fully written the config
+      // 7. wait a bit more then reload core engine
       await new Promise((r) => setTimeout(r, 300))
-
-      // reload the core engine so nodes become available
       await enhanceProfiles()
 
       setWelcomeOpen(false)
