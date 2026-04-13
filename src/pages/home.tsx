@@ -43,7 +43,6 @@ import {
   entry_lightweight_mode,
   importProfile,
   openWebUrl,
-  patchProfilesConfig,
 } from '@/services/cmds'
 
 const LazyTestCard = lazy(() =>
@@ -249,30 +248,19 @@ const HomePage = () => {
     setImporting(true)
     setImportError('')
     try {
-      // get existing uids before import
-      const before = await (await import('@/services/cmds')).getProfiles()
-      const beforeUids = new Set(
-        (before?.items ?? []).map((i) => i.uid),
-      )
-
-      // import the subscription
+      // import_profile backend already:
+      // 1. downloads the subscription
+      // 2. appends to profile list
+      // 3. auto-sets as current if it's the first remote/local profile
       await importProfile(url)
 
-      // get profiles after import to find the new one
-      const after = await (await import('@/services/cmds')).getProfiles()
-      const newItem = (after?.items ?? []).find(
-        (i) => !beforeUids.has(i.uid),
-      )
-
-      if (newItem) {
-        // activate the newly imported profile
-        await patchProfilesConfig({ current: newItem.uid })
-      }
-
-      // refresh profiles data in UI
+      // refresh UI to pick up the new profile
       await mutateProfiles()
 
-      // trigger core engine reload so nodes are available immediately
+      // small delay to ensure backend has fully written the config
+      await new Promise((r) => setTimeout(r, 300))
+
+      // reload the core engine so nodes become available
       await enhanceProfiles()
 
       setWelcomeOpen(false)
