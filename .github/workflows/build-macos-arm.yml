@@ -115,8 +115,7 @@ jobs:
           echo "==> Removing old DMG..."
           rm -f "$DMG_DIR"/*.dmg
 
-          echo "==> Creating new signed DMG..."
-          DMG_NAME=$(ls "$DMG_DIR"/../../../bundle/dmg/ 2>/dev/null || true)
+          echo "==> Creating new signed DMG with Applications shortcut..."
           VERSION=$(cat package.json | python3 -c "import sys,json;print(json.load(sys.stdin)['version'])")
           if [ "${{ matrix.target }}" == "aarch64-apple-darwin" ]; then
             ARCH="aarch64"
@@ -125,7 +124,15 @@ jobs:
           fi
           DMG_FILE="$DMG_DIR/Clash Verge_${VERSION}_${ARCH}.dmg"
 
-          hdiutil create -volname "Clash Verge" -srcfolder "$APP_PATH" -ov -format UDZO "$DMG_FILE"
+          # Create staging folder with .app + Applications symlink
+          STAGING="/tmp/dmg-staging"
+          rm -rf "$STAGING"
+          mkdir -p "$STAGING"
+          cp -R "$APP_PATH" "$STAGING/"
+          ln -s /Applications "$STAGING/Applications"
+
+          hdiutil create -volname "Clash Verge" -srcfolder "$STAGING" -ov -format UDZO "$DMG_FILE"
+          rm -rf "$STAGING"
           echo "==> DMG created: $DMG_FILE"
 
       - name: Upload Artifacts
