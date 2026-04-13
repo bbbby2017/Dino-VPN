@@ -63,7 +63,7 @@ pub async fn enhance_profiles() -> CmdResult {
 
 /// 导入配置文件
 #[tauri::command]
-pub async fn import_profile(url: std::string::String, option: Option<PrfOption>) -> CmdResult {
+pub async fn import_profile(url: std::string::String, option: Option<PrfOption>) -> CmdResult<String> {
     logging!(info, Type::Cmd, "[导入订阅] 开始导入: {}", help::mask_url(&url));
 
     // 直接依赖 PrfItem::from_url 自身的超时/重试逻辑，不再使用 tokio::time::timeout 包裹
@@ -107,7 +107,7 @@ pub async fn import_profile(url: std::string::String, option: Option<PrfOption>)
     }
 
     logging!(info, Type::Cmd, "[导入订阅] 导入完成: {}", help::mask_url(&url));
-    Ok(())
+    Ok(item.uid.clone().unwrap_or_default())
 }
 
 /// 调整profile的顺序

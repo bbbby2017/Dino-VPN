@@ -250,29 +250,18 @@ const HomePage = () => {
     setImporting(true)
     setImportError('')
     try {
-      // 1. snapshot existing profile UIDs
-      const before = await getProfiles()
-      const beforeUids = new Set((before?.items ?? []).map((i) => i.uid))
+      // 1. import the subscription and get the new profile's UID (requires backend update)
+      const newUid = await importProfile(url)
 
-      // 2. import the subscription (downloads + appends to list)
-      await importProfile(url)
-
-      // 3. wait for backend to fully write the config file
-      await new Promise((r) => setTimeout(r, 500))
-
-      // 4. find the newly added profile
-      const after = await getProfiles()
-      const newItem = (after?.items ?? []).find((i) => !beforeUids.has(i.uid))
-
-      // 5. explicitly activate the new profile as current
-      if (newItem) {
-        await patchProfilesConfig({ current: newItem.uid })
+      // 2. explicitly activate the new profile
+      if (newUid) {
+        await patchProfilesConfig({ current: newUid })
       }
 
-      // 6. refresh UI
+      // 3. refresh UI
       await mutateProfiles()
 
-      // 7. wait a bit more then reload core engine
+      // 4. reload core engine
       await new Promise((r) => setTimeout(r, 300))
       await enhanceProfiles()
 
