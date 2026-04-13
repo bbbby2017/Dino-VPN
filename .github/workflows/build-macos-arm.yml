@@ -40,45 +40,55 @@ env:
   HUSKY: 0
 
 jobs:
+  setup_matrix:
+    runs-on: ubuntu-latest
+    outputs:
+      build_matrix: ${{ steps.set-matrix.outputs.build_matrix }}
+      linux_arm_matrix: ${{ steps.set-matrix.outputs.linux_arm_matrix }}
+    steps:
+      - id: set-matrix
+        run: |
+          python3 -c '
+          import json, os
+          is_dispatch = "${{ github.event_name }}" == "workflow_dispatch"
+          inputs = {
+              "windows_x64": "${{ inputs.windows_x64 }}" != "false",
+              "windows_arm64": "${{ inputs.windows_arm64 }}" == "true",
+              "macos_arm64": "${{ inputs.macos_arm64 }}" != "false",
+              "macos_x64": "${{ inputs.macos_x64 }}" != "false",
+              "linux_x64": "${{ inputs.linux_x64 }}" != "false",
+          }
+          builds = []
+          if not is_dispatch or inputs["windows_x64"]:
+            builds.append({"os": "windows-latest", "target": "x86_64-pc-windows-msvc", "label": "Windows x64", "artifact-path": "target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe"})
+          if not is_dispatch or inputs["windows_arm64"]:
+             builds.append({"os": "windows-latest", "target": "aarch64-pc-windows-msvc", "label": "Windows ARM64", "artifact-path": "target/aarch64-pc-windows-msvc/release/bundle/nsis/*.exe"})
+          if not is_dispatch or inputs["macos_arm64"]:
+             builds.append({"os": "macos-latest", "target": "aarch64-apple-darwin", "label": "macOS ARM64 (Apple Silicon)", "artifact-path": "target/aarch64-apple-darwin/release/bundle/dmg/*.dmg"})
+          if not is_dispatch or inputs["macos_x64"]:
+             builds.append({"os": "macos-latest", "target": "x86_64-apple-darwin", "label": "macOS x64 (Intel)", "artifact-path": "target/x86_64-apple-darwin/release/bundle/dmg/*.dmg"})
+          if not is_dispatch or inputs["linux_x64"]:
+             builds.append({"os": "ubuntu-22.04", "target": "x86_64-unknown-linux-gnu", "label": "Linux x64", "artifact-path": "target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb\ntarget/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm"})
+          
+          linux_arms = []
+          if not is_dispatch or inputs.get("linux_arm64") == True:
+             linux_arms.append({"os": "ubuntu-22.04", "target": "aarch64-unknown-linux-gnu", "arch": "arm64", "label": "Linux ARM64"})
+          if not is_dispatch or inputs.get("linux_armv7") == True:
+             linux_arms.append({"os": "ubuntu-22.04", "target": "armv7-unknown-linux-gnueabihf", "arch": "armhf", "label": "Linux ARMv7"})
+          
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+             f.write(f"build_matrix={json.dumps(builds)}\n")
+             f.write(f"linux_arm_matrix={json.dumps(linux_arms)}\n")
+          '
+
   build:
+    needs: setup_matrix
+    if: needs.setup_matrix.outputs.build_matrix != '[]'
     name: Build ${{ matrix.label }}
-    if: >-
-      github.event_name != 'workflow_dispatch' ||
-      (matrix.target == 'x86_64-pc-windows-msvc' && inputs.windows_x64) ||
-      (matrix.target == 'aarch64-pc-windows-msvc' && inputs.windows_arm64) ||
-      (matrix.target == 'aarch64-apple-darwin' && inputs.macos_arm64) ||
-      (matrix.target == 'x86_64-apple-darwin' && inputs.macos_x64) ||
-      (matrix.target == 'x86_64-unknown-linux-gnu' && inputs.linux_x64)
     strategy:
       fail-fast: false
       matrix:
-        include:
-          # Windows
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            label: Windows x64
-            artifact-path: target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
-          - os: windows-latest
-            target: aarch64-pc-windows-msvc
-            label: Windows ARM64
-            artifact-path: target/aarch64-pc-windows-msvc/release/bundle/nsis/*.exe
-          # macOS
-          - os: macos-latest
-            target: aarch64-apple-darwin
-            label: macOS ARM64 (Apple Silicon)
-            artifact-path: target/aarch64-apple-darwin/release/bundle/dmg/*.dmg
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            label: macOS x64 (Intel)
-            artifact-path: target/x86_64-apple-darwin/release/bundle/dmg/*.dmg
-          # Linux
-          - os: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-            label: Linux x64
-            artifact-path: |
-              target/x86_64-unknown-linux-gnu/release/bundle/deb/*.deb
-              target/x86_64-unknown-linux-gnu/release/bundle/rpm/*.rpm
-
+        include: ${{ fromJSON(needs.setup_matrix.outputs.build_matrix) }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Repository
@@ -180,23 +190,13 @@ jobs:
           if-no-files-found: error
 
   build-linux-arm:
+    needs: setup_matrix
+    if: needs.setup_matrix.outputs.linux_arm_matrix != '[]'
     name: Build ${{ matrix.label }}
-    if: >-
-      github.event_name != 'workflow_dispatch' ||
-      (matrix.arch == 'arm64' && inputs.linux_arm64) ||
-      (matrix.arch == 'armhf' && inputs.linux_armv7)
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-22.04
-            target: aarch64-unknown-linux-gnu
-            arch: arm64
-            label: Linux ARM64
-          - os: ubuntu-22.04
-            target: armv7-unknown-linux-gnueabihf
-            arch: armhf
-            label: Linux ARMv7
+        include: ${{ fromJSON(needs.setup_matrix.outputs.linux_arm_matrix) }}
     runs-on: ${{ matrix.os }}
     steps:
       - name: Checkout Repository
