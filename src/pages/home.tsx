@@ -483,11 +483,11 @@ const HomePage = () => {
       {/* 首次启动欢迎弹窗 */}
       <Dialog open={welcomeOpen} maxWidth="sm" fullWidth disableEscapeKeyDown>
         <DialogTitle sx={{ fontWeight: 700, fontSize: 22 }}>
-          🎉 欢迎使用
+          🎉 欢迎使用Dino-VPN
         </DialogTitle>
         <DialogContent>
           <Typography sx={{ mb: 2, color: 'text.secondary' }}>
-            检测到您是首次启动，请粘贴您的订阅链接以快速开始：
+            检测到您是首次启动，请粘贴您的订阅链接以便快速开始：
           </Typography>
           <TextField
             autoFocus
