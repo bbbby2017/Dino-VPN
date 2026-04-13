@@ -49,7 +49,15 @@ fn extract_channel_from_filename(filename: &str) -> Option<String> {
         && let Some(last_part) = parts.last()
     {
         let ignore_list = [
-            "setup", "rev", "portable", "x64", "x86", "arm64", "verge", "clash", "update",
+            "setup",
+            "rev",
+            "portable",
+            "x64",
+            "x86",
+            "arm64",
+            "verge",
+            "clash",
+            "update",
             "installer",
         ];
         if !ignore_list.contains(&last_part.to_lowercase().as_str()) {
@@ -101,12 +109,7 @@ pub async fn apply_channel_config() {
 
     // If the channel ID hasn't changed, skip
     if saved_channel.as_deref() == Some(&channel_id) {
-        logging!(
-            info,
-            Type::Setup,
-            "渠道标识未变化 ({}), 跳过配置拉取",
-            channel_id
-        );
+        logging!(info, Type::Setup, "渠道标识未变化 ({}), 跳过配置拉取", channel_id);
         return;
     }
 

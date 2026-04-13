@@ -172,16 +172,26 @@ pub async fn delete_profile(index: String) -> CmdResult {
         logging!(warn, Type::Cmd, "Warning: 异步更新托盘菜单失败: {e}");
     }
     if should_update {
-        match CoreManager::global().update_config().await {
-            Ok(_) => {
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(10),
+            CoreManager::global().update_config(),
+        )
+        .await
+        {
+            Ok(Ok(_)) => {
                 handle::Handle::refresh_clash();
                 // 发送配置变更通知
                 logging!(info, Type::Cmd, "[删除订阅] 发送配置变更通知: {}", index);
                 handle::Handle::notify_profile_changed(&index);
             }
-            Err(e) => {
+            Ok(Err(e)) => {
                 logging!(error, Type::Cmd, "{}", e);
                 return Err(e.to_string().into());
+            }
+            Err(_) => {
+                let err_msg = "update_config timeout (10s)";
+                logging!(error, Type::Cmd, "{}", err_msg);
+                return Err(err_msg.into());
             }
         }
     }

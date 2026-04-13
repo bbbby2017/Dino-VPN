@@ -107,6 +107,7 @@ impl Sysopt {
     }
 
     /// init the sysproxy
+    #[allow(clippy::unused_async)]
     pub async fn update_sysproxy(&self) -> Result<()> {
         let _lock = self.update_lock.lock().await;
 
@@ -125,53 +126,55 @@ impl Sysopt {
         // 先 await, 避免持有锁导致的 Send 问题
         let bypass = get_bypass().await;
 
-        let (sys, auto, guard_type) = {
-            let (sys, auto) = &mut *self.inner_proxy.write();
-            sys.host = proxy_host.clone().into();
-            sys.port = port;
-            sys.bypass = bypass.into();
-            auto.url = format!("http://{proxy_host}:{pac_port}/commands/pac");
+        let (sys, auto) = &mut *self.inner_proxy.write();
+        sys.enable = false;
+        sys.host = proxy_host.clone().into();
+        sys.port = port;
+        sys.bypass = bypass.into();
 
-            // `enable_system_proxy` is the master switch.
-            // When disabled, force clear both global proxy and PAC at OS level.
-            let guard_type = if !sys_enable {
-                sys.enable = false;
-                auto.enable = false;
-                GuardType::None
-            } else if pac_enable {
-                sys.enable = false;
-                auto.enable = true;
-                if proxy_guard {
-                    GuardType::Autoproxy(auto.clone())
-                } else {
-                    GuardType::None
-                }
-            } else {
-                sys.enable = true;
-                auto.enable = false;
-                if proxy_guard {
-                    GuardType::Sysproxy(sys.clone())
-                } else {
-                    GuardType::None
-                }
-            };
+        auto.enable = false;
+        auto.url = format!("http://{proxy_host}:{pac_port}/commands/pac");
 
-            (sys.clone(), auto.clone(), guard_type)
-        };
+        self.access_guard().write().set_guard_type(GuardType::None);
 
-        self.access_guard().write().set_guard_type(guard_type);
-
-        tokio::task::spawn_blocking(move || -> Result<()> {
+        if !sys_enable && !pac_enable {
+            // disable proxy
             sys.set_system_proxy()?;
             auto.set_auto_proxy()?;
-            Ok(())
-        })
-        .await??;
+            return Ok(());
+        }
+
+        if pac_enable {
+            sys.enable = false;
+            auto.enable = true;
+            sys.set_system_proxy()?;
+            auto.set_auto_proxy()?;
+            if proxy_guard {
+                self.access_guard()
+                    .write()
+                    .set_guard_type(GuardType::Autoproxy(auto.clone()));
+            }
+            return Ok(());
+        }
+
+        if sys_enable {
+            auto.enable = false;
+            sys.enable = true;
+            auto.set_auto_proxy()?;
+            sys.set_system_proxy()?;
+            if proxy_guard {
+                self.access_guard()
+                    .write()
+                    .set_guard_type(GuardType::Sysproxy(sys.clone()));
+            }
+            return Ok(());
+        }
 
         Ok(())
     }
 
     /// reset the sysproxy
+    #[allow(clippy::unused_async)]
     pub async fn reset_sysproxy(&self) -> Result<()> {
         if self
             .reset_sysproxy
@@ -188,19 +191,11 @@ impl Sysopt {
         self.access_guard().write().set_guard_type(GuardType::None);
 
         // 直接关闭所有代理
-        let (sys, auto) = {
-            let (sys, auto) = &mut *self.inner_proxy.write();
-            sys.enable = false;
-            auto.enable = false;
-            (sys.clone(), auto.clone())
-        };
-
-        tokio::task::spawn_blocking(move || -> Result<()> {
-            sys.set_system_proxy()?;
-            auto.set_auto_proxy()?;
-            Ok(())
-        })
-        .await??;
+        let (sys, auto) = &mut *self.inner_proxy.write();
+        sys.enable = false;
+        sys.set_system_proxy()?;
+        auto.enable = false;
+        auto.set_auto_proxy()?;
 
         Ok(())
     }
