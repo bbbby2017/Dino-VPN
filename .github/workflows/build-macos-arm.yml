@@ -2,6 +2,35 @@ name: Build All Platforms
 
 on:
   workflow_dispatch:
+    inputs:
+      windows_x64:
+        description: 'Windows x64'
+        type: boolean
+        default: true
+      windows_arm64:
+        description: 'Windows ARM64'
+        type: boolean
+        default: false
+      macos_arm64:
+        description: 'macOS ARM64 (Apple Silicon)'
+        type: boolean
+        default: true
+      macos_x64:
+        description: 'macOS x64 (Intel)'
+        type: boolean
+        default: true
+      linux_x64:
+        description: 'Linux x64'
+        type: boolean
+        default: true
+      linux_arm64:
+        description: 'Linux ARM64'
+        type: boolean
+        default: false
+      linux_armv7:
+        description: 'Linux ARMv7'
+        type: boolean
+        default: false
 
 permissions: write-all
 
@@ -13,6 +42,13 @@ env:
 jobs:
   build:
     name: Build ${{ matrix.label }}
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      (matrix.target == 'x86_64-pc-windows-msvc' && inputs.windows_x64) ||
+      (matrix.target == 'aarch64-pc-windows-msvc' && inputs.windows_arm64) ||
+      (matrix.target == 'aarch64-apple-darwin' && inputs.macos_arm64) ||
+      (matrix.target == 'x86_64-apple-darwin' && inputs.macos_x64) ||
+      (matrix.target == 'x86_64-unknown-linux-gnu' && inputs.linux_x64)
     strategy:
       fail-fast: false
       matrix:
@@ -145,6 +181,10 @@ jobs:
 
   build-linux-arm:
     name: Build ${{ matrix.label }}
+    if: >-
+      github.event_name != 'workflow_dispatch' ||
+      (matrix.arch == 'arm64' && inputs.linux_arm64) ||
+      (matrix.arch == 'armhf' && inputs.linux_armv7)
     strategy:
       fail-fast: false
       matrix:
