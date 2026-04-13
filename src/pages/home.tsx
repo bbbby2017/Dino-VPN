@@ -249,17 +249,32 @@ const HomePage = () => {
     setImporting(true)
     setImportError('')
     try {
+      // get existing uids before import
+      const before = await (await import('@/services/cmds')).getProfiles()
+      const beforeUids = new Set(
+        (before?.items ?? []).map((i) => i.uid),
+      )
+
+      // import the subscription
       await importProfile(url)
-      await mutateProfiles()
-      // auto-activate the first profile
-      const updated = await (await import('@/services/cmds')).getProfiles()
-      if (updated?.items?.length) {
-        const uid = updated.items[0]!.uid
-        await patchProfilesConfig({ current: uid })
-        await mutateProfiles()
-        // trigger core engine reload so nodes are available immediately
-        await enhanceProfiles()
+
+      // get profiles after import to find the new one
+      const after = await (await import('@/services/cmds')).getProfiles()
+      const newItem = (after?.items ?? []).find(
+        (i) => !beforeUids.has(i.uid),
+      )
+
+      if (newItem) {
+        // activate the newly imported profile
+        await patchProfilesConfig({ current: newItem.uid })
       }
+
+      // refresh profiles data in UI
+      await mutateProfiles()
+
+      // trigger core engine reload so nodes are available immediately
+      await enhanceProfiles()
+
       setWelcomeOpen(false)
     } catch (e: any) {
       setImportError(String(e?.message || e || '导入失败'))
