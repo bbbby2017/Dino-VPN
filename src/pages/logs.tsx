@@ -20,7 +20,11 @@ import LogItem from '@/components/log/log-item'
 import { useClashLog } from '@/hooks/use-clash-log'
 import { useLogData } from '@/hooks/use-log-data'
 
-const LogPage = () => {
+interface LogPageProps {
+  active?: boolean
+}
+
+const LogPage = ({ active = true }: LogPageProps) => {
   const { t } = useTranslation()
   const [clashLog, setClashLog] = useClashLog()
   const enableLog = clashLog.enable
@@ -33,7 +37,7 @@ const LogPage = () => {
   const {
     response: { data: logData },
     refreshGetClashLog,
-  } = useLogData()
+  } = useLogData({ enabled: active })
 
   const filterLogs = useMemo(() => {
     if (!logData || logData.length === 0) {
@@ -64,12 +68,12 @@ const LogPage = () => {
   const virtuosoRef = useRef<VirtualListHandle>(null)
 
   useEffect(() => {
-    if (!isDescending && filteredLogs.length > 0) {
+    if (active && !isDescending && filteredLogs.length > 0) {
       virtuosoRef.current?.scrollToIndex(filteredLogs.length - 1, {
         behavior: 'smooth',
       })
     }
-  }, [filteredLogs.length, isDescending])
+  }, [active, filteredLogs.length, isDescending])
 
   const handleLogLevelChange = (newLevel: string) => {
     setClashLog((pre: any) => ({ ...pre, logFilter: newLevel }))

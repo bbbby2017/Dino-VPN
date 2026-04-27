@@ -28,6 +28,7 @@ interface HandlerResult {
 }
 
 interface UseMihomoWsSubscriptionOptions<T> {
+  enabled?: boolean
   storageKey: string
   buildSubscriptKey: (date: number) => string | null
   fallbackData: T
@@ -48,6 +49,7 @@ export const useMihomoWsSubscription = <T>(
   options: UseMihomoWsSubscriptionOptions<T>,
 ) => {
   const {
+    enabled = true,
     storageKey,
     buildSubscriptKey,
     fallbackData,
@@ -58,7 +60,7 @@ export const useMihomoWsSubscription = <T>(
 
   // eslint-disable-next-line @eslint-react/purity
   const [date, setDate] = useLocalStorage(storageKey, Date.now())
-  const subscriptKey = buildSubscriptKey(date)
+  const subscriptKey = enabled ? buildSubscriptKey(date) : null
   const subscriptionCacheKey = subscriptKey ? `$sub$${subscriptKey}` : null
 
   const queryClient = useQueryClient()

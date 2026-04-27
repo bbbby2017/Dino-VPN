@@ -151,11 +151,11 @@ export const EnhancedTrafficStats = () => {
 
   const {
     response: { data: traffic },
-  } = useTrafficData({ enabled: trafficGraph && pageVisible })
+  } = useTrafficData({ enabled: pageVisible })
 
   const {
     response: { data: memory },
-  } = useMemoryData()
+  } = useMemoryData({ enabled: pageVisible })
 
   const {
     response: { data: connections },

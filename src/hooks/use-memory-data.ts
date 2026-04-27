@@ -9,8 +9,10 @@ export interface IMemoryUsageItem {
 
 const FALLBACK_MEMORY_USAGE: IMemoryUsageItem = { inuse: 0 }
 
-export const useMemoryData = () => {
+export const useMemoryData = (options?: { enabled?: boolean }) => {
+  const enabled = options?.enabled ?? true
   const { response, refresh } = useMihomoWsSubscription<IMemoryUsageItem>({
+    enabled,
     storageKey: 'mihomo_memory_date',
     buildSubscriptKey: (date) => `getClashMemory-${date}`,
     fallbackData: FALLBACK_MEMORY_USAGE,

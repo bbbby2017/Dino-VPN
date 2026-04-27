@@ -38,7 +38,8 @@ const appendLogs = (
   incoming: ILogItem[],
 ): ILogItem[] => clampLogs([...(current ?? []), ...incoming])
 
-export const useLogData = () => {
+export const useLogData = (options?: { enabled?: boolean }) => {
+  const enabled = options?.enabled ?? true
   const queryClient = useQueryClient()
   const [clashLog] = useClashLog()
   const enableLog = clashLog.enable
@@ -48,6 +49,7 @@ export const useLogData = () => {
   const { response, refresh, subscriptionCacheKey } = useMihomoWsSubscription<
     ILogItem[]
   >({
+    enabled,
     storageKey: 'mihomo_logs_date',
     buildSubscriptKey: (date) => (enableLog ? `getClashLog-${date}` : null),
     fallbackData: [],

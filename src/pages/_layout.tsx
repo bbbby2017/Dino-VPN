@@ -462,7 +462,7 @@ const Layout = () => {
                     display: isLogsPage ? undefined : 'none',
                   }}
                 >
-                  <LogsPage />
+                  <LogsPage active={isLogsPage} />
                 </div>
               )}
             </div>
