@@ -18,7 +18,7 @@ import { ReactNode, memo, useMemo, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { TrafficErrorBoundary } from '@/components/shared/traffic-error-boundary'
-import { useConnectionData } from '@/hooks/use-connection-data'
+import { useConnectionSummaryData } from '@/hooks/use-connection-data'
 import { useMemoryData } from '@/hooks/use-memory-data'
 import { useTrafficData } from '@/hooks/use-traffic-data'
 import { useVerge } from '@/hooks/use-verge'
@@ -158,8 +158,8 @@ export const EnhancedTrafficStats = () => {
   } = useMemoryData({ enabled: pageVisible })
 
   const {
-    response: { data: connections },
-  } = useConnectionData()
+    response: { data: connectionSummary },
+  } = useConnectionSummaryData({ enabled: pageVisible })
 
   // Canvas组件现在直接从全局Hook获取数据，无需手动添加数据点
 
@@ -169,10 +169,10 @@ export const EnhancedTrafficStats = () => {
     const [down, downUnit] = parseTraffic(traffic?.down || 0)
     const [inuse, inuseUnit] = parseTraffic(memory?.inuse || 0)
     const [uploadTotal, uploadTotalUnit] = parseTraffic(
-      connections?.uploadTotal,
+      connectionSummary?.uploadTotal,
     )
     const [downloadTotal, downloadTotalUnit] = parseTraffic(
-      connections?.downloadTotal,
+      connectionSummary?.downloadTotal,
     )
 
     return {
@@ -186,9 +186,9 @@ export const EnhancedTrafficStats = () => {
       uploadTotalUnit,
       downloadTotal,
       downloadTotalUnit,
-      connectionsCount: connections?.activeConnections.length,
+      connectionsCount: connectionSummary?.activeCount,
     }
-  }, [traffic, memory, connections])
+  }, [traffic, memory, connectionSummary])
 
   // 渲染流量图表 - 使用useMemo缓存渲染结果
   const trafficGraphComponent = useMemo(() => {

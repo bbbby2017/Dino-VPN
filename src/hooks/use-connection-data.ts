@@ -19,6 +19,18 @@ export interface ConnectionMonitorData {
   closedConnections: IConnectionsItem[]
 }
 
+export interface ConnectionSummaryData {
+  uploadTotal: number
+  downloadTotal: number
+  activeCount: number
+}
+
+const initConnSummaryData: ConnectionSummaryData = {
+  uploadTotal: 0,
+  downloadTotal: 0,
+  activeCount: 0,
+}
+
 const trimClosedConnections = (
   closedConnections: IConnectionsItem[],
 ): IConnectionsItem[] =>
@@ -112,5 +124,38 @@ export const useConnectionData = () => {
     response,
     refreshGetClashConnection: refresh,
     clearClosedConnections,
+  }
+}
+
+export const useConnectionSummaryData = (options?: { enabled?: boolean }) => {
+  const enabled = options?.enabled ?? true
+  const { response, refresh } = useMihomoWsSubscription<ConnectionSummaryData>({
+    enabled,
+    storageKey: 'mihomo_connection_summary_date',
+    buildSubscriptKey: (date) => `getClashConnectionSummary-${date}`,
+    fallbackData: initConnSummaryData,
+    connect: () => MihomoWebSocket.connect_connections(),
+    throttleMs: 1000,
+    setupHandlers: ({ next, scheduleReconnect }) => ({
+      handleMessage: (data) => {
+        if (data.startsWith('Websocket error')) {
+          next(data)
+          void scheduleReconnect()
+          return
+        }
+
+        const payload = JSON.parse(data) as IConnections
+        next(null, {
+          uploadTotal: payload.uploadTotal ?? 0,
+          downloadTotal: payload.downloadTotal ?? 0,
+          activeCount: payload.connections?.length ?? 0,
+        })
+      },
+    }),
+  })
+
+  return {
+    response,
+    refreshGetClashConnectionSummary: refresh,
   }
 }
