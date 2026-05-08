@@ -24,6 +24,13 @@
       },
       "title": "Настройки главной страницы"
     },
+    "quickFix": {
+      "button": "Quick Fix",
+      "tooltipNoProfile": "Please select a profile first",
+      "success": "Fix completed",
+      "updateFailed": "Failed to update profile",
+      "restartFailed": "Failed to restart core"
+    },
     "title": "Главная"
   },
   "components": {

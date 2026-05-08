@@ -1,6 +1,6 @@
 import {
+  BuildOutlined,
   DnsOutlined,
-  HelpOutlineRounded,
   HistoryEduOutlined,
   RouterOutlined,
   SettingsOutlined,
@@ -18,14 +18,12 @@ import {
   FormControlLabel,
   FormGroup,
   Grid,
-  IconButton,
   Skeleton,
   TextField,
   Tooltip,
   Typography,
 } from '@mui/material'
-import { useLockFn } from 'ahooks'
-import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 
@@ -40,12 +38,12 @@ import { useProfiles } from '@/hooks/use-profiles'
 import { useVerge } from '@/hooks/use-verge'
 import {
   enhanceProfiles,
-  entry_lightweight_mode,
-  getProfiles,
   importProfile,
-  openWebUrl,
   patchProfilesConfig,
+  restartCore,
+  updateProfile,
 } from '@/services/cmds'
+import { showNotice } from '@/services/notice-service'
 
 const LazyTestCard = lazy(() =>
   import('@/components/home/test-card').then((module) => ({
@@ -225,22 +223,45 @@ const HomePage = () => {
   const { verge } = useVerge()
   const { profiles, current, mutateProfiles } = useProfiles()
 
-  // Welcome dialog state
-  const [welcomeOpen, setWelcomeOpen] = useState(false)
+  // Welcome dialog state — derive `welcomeOpen` from profiles + dismissed flag
+  // to avoid `setState` calls inside `useEffect` (eslint set-state-in-effect)
+  const [welcomeDismissed, setWelcomeDismissed] = useState(false)
   const [subUrl, setSubUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState('')
 
-  // Check if first run (no profiles)
-  useEffect(() => {
-    if (!profiles) return // data not loaded yet
+  const welcomeOpen = useMemo(() => {
+    if (welcomeDismissed) return false
+    if (!profiles) return false
     const items = profiles.items ?? []
-    // Filter to only remote/local subscriptions (exclude merge/script extensions)
     const realProfiles = items.filter(
       (p) => p.type === 'remote' || p.type === 'local',
     )
-    if (realProfiles.length === 0) {
-      setWelcomeOpen(true)
+    return realProfiles.length === 0
+  }, [profiles, welcomeDismissed])
+
+  // Quick-fix button state: prevent re-clicks while update + restart in flight
+  const [quickFixLoading, setQuickFixLoading] = useState(false)
+  const handleQuickFix = useCallback(async () => {
+    const currentUid = profiles?.current
+    if (!currentUid) return
+    setQuickFixLoading(true)
+    try {
+      try {
+        await updateProfile(currentUid)
+      } catch (err) {
+        showNotice.error('home.page.quickFix.updateFailed', err)
+        return
+      }
+      try {
+        await restartCore()
+      } catch (err) {
+        showNotice.error('home.page.quickFix.restartFailed', err)
+        return
+      }
+      showNotice.success('home.page.quickFix.success')
+    } finally {
+      setQuickFixLoading(false)
     }
   }, [profiles])
 
@@ -265,7 +286,7 @@ const HomePage = () => {
       await new Promise((r) => setTimeout(r, 300))
       await enhanceProfiles()
 
-      setWelcomeOpen(false)
+      setWelcomeDismissed(true)
     } catch (e: any) {
       setImportError(String(e?.message || e || '导入失败'))
     } finally {
@@ -288,7 +309,7 @@ const HomePage = () => {
       proxy: true,
       network: true,
       mode: true,
-      traffic: true,
+      traffic: false,
       clashinfo: true,
       systeminfo: true,
       test: true,
@@ -320,11 +341,6 @@ const HomePage = () => {
   }, [localHomeCards, remoteSignature])
 
   const effectiveHomeCards = pendingLocalCards ?? remoteHomeCards
-
-  // 文档链接函数
-  const toGithubDoc = useLockFn(() => {
-    return openWebUrl('https://clash-verge-rev.github.io/index.html')
-  })
 
   // 新增：打开设置弹窗
   const openSettings = useCallback(() => {
@@ -428,6 +444,35 @@ const HomePage = () => {
       contentStyle={{ padding: 2 }}
       header={
         <Box sx={{ display: 'flex', alignItems: 'center' }}>
+          <Tooltip
+            title={
+              !profiles?.current ? t('home.page.quickFix.tooltipNoProfile') : ''
+            }
+            arrow
+            disableHoverListener={!!profiles?.current}
+            disableFocusListener={!!profiles?.current}
+            disableTouchListener={!!profiles?.current}
+          >
+            <span>
+              <Button
+                variant="text"
+                color="inherit"
+                size="small"
+                onClick={handleQuickFix}
+                disabled={quickFixLoading || !profiles?.current}
+                startIcon={
+                  quickFixLoading ? (
+                    <CircularProgress size={16} color="inherit" />
+                  ) : (
+                    <BuildOutlined />
+                  )
+                }
+                sx={{ fontWeight: 'bold' }}
+              >
+                {t('home.page.quickFix.button')}
+              </Button>
+            </span>
+          </Tooltip>
           <Button
             variant="text"
             color="inherit"
@@ -448,25 +493,16 @@ const HomePage = () => {
           >
             日志
           </Button>
-          <Tooltip title={t('home.page.tooltips.lightweightMode')} arrow>
-            <IconButton
-              onClick={async () => await entry_lightweight_mode()}
-              size="small"
-              color="inherit"
-            >
-              <HistoryEduOutlined />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={t('home.page.tooltips.manual')} arrow>
-            <IconButton onClick={toGithubDoc} size="small" color="inherit">
-              <HelpOutlineRounded />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title={t('home.page.tooltips.settings')} arrow>
-            <IconButton onClick={openSettings} size="small" color="inherit">
-              <SettingsOutlined />
-            </IconButton>
-          </Tooltip>
+          <Button
+            variant="text"
+            color="inherit"
+            size="small"
+            onClick={openSettings}
+            startIcon={<SettingsOutlined />}
+            sx={{ fontWeight: 'bold' }}
+          >
+            {t('home.page.tooltips.settings')}
+          </Button>
         </Box>
       }
     >
@@ -512,7 +548,10 @@ const HomePage = () => {
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button onClick={() => setWelcomeOpen(false)} disabled={importing}>
+          <Button
+            onClick={() => setWelcomeDismissed(true)}
+            disabled={importing}
+          >
             稍后手动添加
           </Button>
           <Button

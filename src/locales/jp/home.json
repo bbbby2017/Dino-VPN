@@ -24,6 +24,13 @@
       },
       "title": "ホーム設定"
     },
+    "quickFix": {
+      "button": "ワンクリック修復",
+      "tooltipNoProfile": "先にサブスクリプションを選択してください",
+      "success": "修復完了",
+      "updateFailed": "サブスクリプションの更新に失敗しました",
+      "restartFailed": "コアの再起動に失敗しました"
+    },
     "title": "ホーム"
   },
   "components": {

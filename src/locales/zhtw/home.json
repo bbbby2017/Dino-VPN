@@ -24,6 +24,13 @@
       },
       "title": "首頁設定"
     },
+    "quickFix": {
+      "button": "一鍵修復",
+      "tooltipNoProfile": "請先選擇訂閱",
+      "success": "修復完成",
+      "updateFailed": "訂閱更新失敗",
+      "restartFailed": "核心重啟失敗"
+    },
     "title": "首頁"
   },
   "components": {

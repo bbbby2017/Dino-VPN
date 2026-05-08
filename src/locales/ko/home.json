@@ -24,6 +24,13 @@
       },
       "title": "홈 설정"
     },
+    "quickFix": {
+      "button": "Quick Fix",
+      "tooltipNoProfile": "Please select a profile first",
+      "success": "Fix completed",
+      "updateFailed": "Failed to update profile",
+      "restartFailed": "Failed to restart core"
+    },
     "title": "홈"
   },
   "components": {

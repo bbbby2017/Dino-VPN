@@ -24,6 +24,13 @@
       },
       "title": "首页设置"
     },
+    "quickFix": {
+      "button": "一键修复",
+      "tooltipNoProfile": "请先选择订阅",
+      "success": "修复完成",
+      "updateFailed": "订阅更新失败",
+      "restartFailed": "内核重启失败"
+    },
     "title": "首页"
   },
   "components": {

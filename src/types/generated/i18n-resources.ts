@@ -150,6 +150,13 @@ export interface TranslationResources {
           proxyMode: string
           trafficStats: string
         }
+        quickFix: {
+          button: string
+          restartFailed: string
+          success: string
+          tooltipNoProfile: string
+          updateFailed: string
+        }
         settings: {
           cards: {
             clashInfo: string
