@@ -189,6 +189,35 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
+      - name: Read app version
+        id: app_version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to GitHub Release (draft)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: manual-build-v${{ env.VERSION }}
+          name: 'Manual Build v${{ env.VERSION }}'
+          body: |
+            Manual build produced by **Build All Platforms** workflow.
+
+            - Commit: `${{ github.sha }}`
+            - Run: ${{ github.run_id }} (#${{ github.run_number }})
+            - Triggered by: @${{ github.actor }}
+
+            Files are appended by every matrix job; this draft will not auto-publish.
+            Review the assets and publish manually when ready, or delete if not needed.
+          draft: true
+          prerelease: false
+          make_latest: 'false'
+          fail_on_unmatched_files: false
+          files: ${{ matrix.artifact-path }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
   build-linux-arm:
     needs: setup_matrix
     if: needs.setup_matrix.outputs.linux_arm_matrix != '[]'
@@ -303,3 +332,34 @@ jobs:
             target/${{ matrix.target }}/release/bundle/rpm/*.rpm
           retention-days: 30
           if-no-files-found: error
+
+      - name: Read app version
+        id: app_version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Publish to GitHub Release (draft)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: manual-build-v${{ env.VERSION }}
+          name: 'Manual Build v${{ env.VERSION }}'
+          body: |
+            Manual build produced by **Build All Platforms** workflow.
+
+            - Commit: `${{ github.sha }}`
+            - Run: ${{ github.run_id }} (#${{ github.run_number }})
+            - Triggered by: @${{ github.actor }}
+
+            Files are appended by every matrix job; this draft will not auto-publish.
+            Review the assets and publish manually when ready, or delete if not needed.
+          draft: true
+          prerelease: false
+          make_latest: 'false'
+          fail_on_unmatched_files: false
+          files: |
+            target/${{ matrix.target }}/release/bundle/deb/*.deb
+            target/${{ matrix.target }}/release/bundle/rpm/*.rpm
+          token: ${{ secrets.GITHUB_TOKEN }}
