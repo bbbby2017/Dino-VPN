@@ -1,0 +1,283 @@
+/* Product-intro deck adapted from the html-ppt product-launch template. */
+.tpl-product-intro {
+  --bg: #ffffff;
+  --bg-soft: #f5f7fb;
+  --surface: #ffffff;
+  --surface-2: #eef3fb;
+  --ink: #0c1222;
+  --ink-2: #35405a;
+  --border: rgba(12, 18, 34, 0.08);
+  --border-strong: rgba(12, 18, 34, 0.16);
+  --text-1: #0c1222;
+  --text-2: #43506a;
+  --text-3: #8994aa;
+  --accent: #4f7cff;
+  --accent-2: #28d7b7;
+  --accent-3: #a673ff;
+  --grad: linear-gradient(120deg, #4f7cff 0%, #28d7b7 55%, #a673ff 100%);
+  --radius: 22px;
+  --radius-lg: 32px;
+  --shadow: 0 24px 70px rgba(25, 48, 99, 0.14);
+  font-family: "Inter", "Noto Sans SC", sans-serif;
+}
+
+.tpl-product-intro .slide {
+  padding: 80px 112px;
+}
+
+.tpl-product-intro .slide.dark {
+  background:
+    radial-gradient(
+      circle at 78% 28%,
+      rgba(79, 124, 255, 0.32),
+      transparent 34%
+    ),
+    radial-gradient(circle at 18% 78%, rgba(40, 215, 183, 0.2), transparent 32%),
+    #08111f;
+  color: #f7fbff;
+}
+
+.tpl-product-intro .slide.dark .h1,
+.tpl-product-intro .slide.dark .h2,
+.tpl-product-intro .slide.dark h3,
+.tpl-product-intro .slide.dark h4 {
+  color: #fff;
+}
+
+.tpl-product-intro .slide.dark .lede,
+.tpl-product-intro .slide.dark .dim {
+  color: rgba(247, 251, 255, 0.72);
+}
+
+.tpl-product-intro .slide.dark .card,
+.tpl-product-intro .slide.dark .cta-panel {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.13);
+  box-shadow: none;
+  backdrop-filter: blur(20px);
+}
+
+.tpl-product-intro .slide.dark .kicker {
+  color: var(--accent-2);
+}
+
+.tpl-product-intro .h1 {
+  max-width: 820px;
+  font-size: 90px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+}
+
+.tpl-product-intro .h2 {
+  font-size: 64px;
+  line-height: 1.06;
+  font-weight: 850;
+  letter-spacing: -0.04em;
+}
+
+.tpl-product-intro .brand {
+  position: absolute;
+  top: 56px;
+  left: 112px;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 18px;
+  font-weight: 850;
+  letter-spacing: -0.02em;
+}
+
+.tpl-product-intro .brand img {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+
+.tpl-product-intro .hero-orb {
+  position: absolute;
+  right: -100px;
+  top: 50%;
+  width: 660px;
+  height: 660px;
+  transform: translateY(-50%);
+  border-radius: 50%;
+  background: var(--grad);
+  opacity: 0.9;
+  filter: blur(1px);
+}
+
+.tpl-product-intro .hero-orb::before {
+  content: "";
+  position: absolute;
+  inset: 90px;
+  border-radius: 46px;
+  background:
+    linear-gradient(160deg, rgba(255, 255, 255, 0.28), transparent 62%),
+    rgba(8, 17, 31, 0.82);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.24),
+    0 30px 90px rgba(0, 0, 0, 0.25);
+}
+
+.tpl-product-intro .hero-orb::after {
+  content: "Verge";
+  position: absolute;
+  inset: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 54px;
+  font-weight: 950;
+  letter-spacing: -0.05em;
+}
+
+.tpl-product-intro .pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 14px;
+}
+
+.tpl-product-intro .pill-row span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 46px;
+  padding: 0 22px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-2);
+  font-weight: 750;
+  box-shadow: 0 14px 40px rgba(25, 48, 99, 0.08);
+}
+
+.tpl-product-intro .feature-card,
+.tpl-product-intro .card,
+.tpl-product-intro .cta-panel {
+  position: relative;
+  overflow: hidden;
+  padding: 40px 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.tpl-product-intro .feature-card.large {
+  min-height: 300px;
+}
+
+.tpl-product-intro .feature-card .icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  margin-bottom: 20px;
+  border-radius: 18px;
+  background: var(--grad);
+  color: #fff;
+  font-size: 26px;
+  font-weight: 950;
+}
+
+.tpl-product-intro .step {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.tpl-product-intro .step .n {
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--grad);
+  color: #fff;
+  font-size: 22px;
+  font-weight: 950;
+}
+
+.tpl-product-intro .showcase {
+  display: grid;
+  grid-template-columns: 1fr 1fr 0.9fr;
+  gap: 28px;
+  align-items: stretch;
+}
+
+.tpl-product-intro .preview-frame {
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+
+.tpl-product-intro .preview-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tpl-product-intro .dark-preview {
+  background: #111827;
+}
+
+.tpl-product-intro .light-preview {
+  background: #f7f9fc;
+}
+
+.tpl-product-intro .showcase .copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 36px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--bg-soft);
+}
+
+.tpl-product-intro .final-row {
+  gap: 80px;
+  align-items: center;
+}
+
+.tpl-product-intro .final-row > div:first-child {
+  flex: 1;
+}
+
+.tpl-product-intro .cta-panel {
+  flex: 0 0 420px;
+}
+
+.tpl-product-intro .cta-panel ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tpl-product-intro .cta-panel li {
+  padding: 12px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(247, 251, 255, 0.86);
+  font-size: 18px;
+}
+
+.tpl-product-intro .cta-btn {
+  display: inline-block;
+  padding: 18px 30px;
+  border-radius: 999px;
+  background: var(--grad);
+  color: #fff;
+  font-size: 18px;
+  font-weight: 800;
+  box-shadow: 0 20px 50px rgba(79, 124, 255, 0.34);
+}
+
+.tpl-product-intro .notes {
+  display: none;
+}
