@@ -422,17 +422,40 @@ pub(super) async fn stop_core_by_service() -> Result<()> {
 
 /// 检查服务是否正在运行
 pub async fn is_service_available() -> Result<()> {
-    if let Err(e) = Path::metadata(clash_verge_service_ipc::IPC_PATH.as_ref()) {
+    if let Err(e) = check_service_available_once().await {
         let verge = Config::verge().await;
         let verge_last = verge.latest_arc();
         let is_enable = verge_last.enable_tun_mode.unwrap_or(false);
         if is_enable {
-            logging!(warn, Type::Service, "Some issue with service IPC Path: {}", e);
+            logging!(warn, Type::Service, "Service is not available: {}", e);
         }
-        return Err(e.into());
+        return Err(e);
     }
+
+    Ok(())
+}
+
+async fn check_service_available_once() -> Result<()> {
+    Path::metadata(clash_verge_service_ipc::IPC_PATH.as_ref())?;
     clash_verge_service_ipc::connect().await?;
     Ok(())
+}
+
+/// Wait for the Windows service to recreate its IPC endpoint after a cold boot.
+///
+/// The service can be installed and healthy while its named pipe is still being
+/// created. Treating that short window as a permanent failure disables the
+/// persisted TUN setting before the service manager gets a chance to start.
+#[cfg(target_os = "windows")]
+pub async fn wait_for_service_available_on_startup() -> Result<()> {
+    use crate::constants::timing;
+
+    let max_times = timing::SERVICE_WAIT_MAX.as_millis() / timing::SERVICE_WAIT_INTERVAL.as_millis();
+    let backoff = ConstantBuilder::default()
+        .with_delay(timing::SERVICE_WAIT_INTERVAL)
+        .with_max_times(max_times as usize);
+
+    (|| async { check_service_available_once().await }).retry(backoff).await
 }
 
 pub async fn wait_and_check_service_available(status: &mut ServiceManager) -> Result<()> {

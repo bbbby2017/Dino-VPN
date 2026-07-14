@@ -71,8 +71,21 @@ impl Config {
         // init Tun mode
         let handle = Handle::app_handle();
         let is_admin = is_current_app_handle_admin(handle);
-        let is_service_available = service::is_service_available().await.is_ok();
-        if !is_admin && !is_service_available {
+        let is_tun_enabled = verge.enable_tun_mode.unwrap_or(false);
+        let is_service_available = if is_tun_enabled && !is_admin {
+            #[cfg(target_os = "windows")]
+            {
+                service::wait_for_service_available_on_startup().await.is_ok()
+            }
+            #[cfg(not(target_os = "windows"))]
+            {
+                service::is_service_available().await.is_ok()
+            }
+        } else {
+            true
+        };
+
+        if is_tun_enabled && !is_admin && !is_service_available {
             let verge = Self::verge().await;
             verge.edit_draft(|d| {
                 d.enable_tun_mode = Some(false);
