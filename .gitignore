@@ -15,10 +15,12 @@ scripts/_env.sh
 target
 CLAUDE.md
 .vfox.toml
-.vfox/
+.vfox
 .claude
 openspec/
 .agent/
 .codex/
 .github/prompts/
 .github/skills/
+AGENTS.md
+.zed

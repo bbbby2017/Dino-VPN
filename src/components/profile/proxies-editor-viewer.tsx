@@ -7,8 +7,11 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import { SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import MonacoEditor from '@monaco-editor/react'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable'
 import {
   VerticalAlignBottomRounded,
   VerticalAlignTopRounded,
@@ -27,7 +30,6 @@ import {
 } from '@mui/material'
 import { useLockFn } from 'ahooks'
 import yaml from 'js-yaml'
-import type { editor } from 'monaco-editor'
 import {
   startTransition,
   useCallback,
@@ -38,11 +40,12 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { BaseSearchBox, VirtualList } from '@/components/base'
+import { BaseSearchBox, MonacoEditor, VirtualList } from '@/components/base'
 import { ProxyItem } from '@/components/profile/proxy-item'
 import { readProfileFile, saveProfileFile } from '@/services/cmds'
 import { showNotice } from '@/services/notice-service'
 import { useThemeMode } from '@/services/states'
+import type { MonacoEditorInstance } from '@/types/monaco'
 import getSystem from '@/utils/get-system'
 import parseUri from '@/utils/uri-parser'
 
@@ -58,7 +61,7 @@ export const ProxiesEditorViewer = (props: Props) => {
   const { profileUid, property, open, onClose, onSave } = props
   const { t } = useTranslation()
   const themeMode = useThemeMode()
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
+  const editorRef = useRef<MonacoEditorInstance | null>(null)
   const [prevData, setPrevData] = useState('')
   const [currData, setCurrData] = useState('')
   const [visualization, setVisualization] = useState(true)
@@ -177,16 +180,6 @@ export const ProxiesEditorViewer = (props: Props) => {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   )
-  const reorder = (
-    list: IProxyConfig[],
-    startIndex: number,
-    endIndex: number,
-  ) => {
-    const result = Array.from(list)
-    const [removed] = result.splice(startIndex, 1)
-    result.splice(endIndex, 0, removed)
-    return result
-  }
   const onPrependDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     if (over) {
@@ -202,7 +195,7 @@ export const ProxiesEditorViewer = (props: Props) => {
           }
         })
 
-        setPrependSeq(reorder(prependSeq, activeIndex, overIndex))
+        setPrependSeq(arrayMove(prependSeq, activeIndex, overIndex))
       }
     }
   }
@@ -220,7 +213,7 @@ export const ProxiesEditorViewer = (props: Props) => {
             overIndex = index
           }
         })
-        setAppendSeq(reorder(appendSeq, activeIndex, overIndex))
+        setAppendSeq(arrayMove(appendSeq, activeIndex, overIndex))
       }
     }
   }
@@ -355,7 +348,11 @@ export const ProxiesEditorViewer = (props: Props) => {
 
   const handleSave = useLockFn(async () => {
     try {
-      await saveProfileFile(property, currData)
+      if (!(await saveProfileFile(property, currData))) {
+        await fetchContent()
+        onClose()
+        return
+      }
       showNotice.success('shared.feedback.notifications.saved')
       onSave?.(prevData, currData)
       onClose()
@@ -374,7 +371,7 @@ export const ProxiesEditorViewer = (props: Props) => {
     >
       <DialogTitle>
         {
-          <Box display="flex" justifyContent="space-between">
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             {t('profiles.modals.proxiesEditor.title')}
             <Box>
               <Button

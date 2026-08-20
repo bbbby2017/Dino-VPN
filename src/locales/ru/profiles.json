@@ -37,7 +37,7 @@
         "importSuccess": "Профиль успешно импортирован. Перезапустите приложение, если он не появился",
         "profileSwitched": "Профиль переключён",
         "profileReactivated": "Профиль перезапущен",
-        "switchInterrupted": "Переключение профиля прервано новым выбором",
+        "switchBusy": "Переключение профиля уже выполняется",
         "batchDeleted": "Выбранные профили удалены"
       },
       "notices": {
@@ -59,6 +59,7 @@
     "menu": {
       "home": "Главная",
       "select": "Выбрать",
+      "shareQrCode": "Share QR Code",
       "editInfo": "Изменить информацию",
       "editFile": "Изменить файл",
       "editRules": "Редактировать правила",
@@ -177,6 +178,9 @@
     },
     "logViewer": {
       "title": "Консоль скрипта"
+    },
+    "qrViewer": {
+      "title": "Subscription QR Code"
     }
   }
 }

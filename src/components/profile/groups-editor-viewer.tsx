@@ -7,8 +7,11 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core'
-import { SortableContext, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
-import MonacoEditor from '@monaco-editor/react'
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable'
 import {
   VerticalAlignBottomRounded,
   VerticalAlignTopRounded,
@@ -34,7 +37,6 @@ import {
   requestIdleCallback,
 } from 'foxact/request-idle-callback'
 import yaml from 'js-yaml'
-import type { editor } from 'monaco-editor'
 import {
   startTransition,
   useCallback,
@@ -46,7 +48,12 @@ import {
 import { Controller, useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 
-import { BaseSearchBox, Switch, VirtualList } from '@/components/base'
+import {
+  BaseSearchBox,
+  MonacoEditor,
+  Switch,
+  VirtualList,
+} from '@/components/base'
 import { GroupItem } from '@/components/profile/group-item'
 import {
   getNetworkInterfaces,
@@ -56,6 +63,7 @@ import {
 import { showNotice } from '@/services/notice-service'
 import { useThemeMode } from '@/services/states'
 import type { TranslationKey } from '@/types/generated/i18n-keys'
+import type { MonacoEditorInstance } from '@/types/monaco'
 import getSystem from '@/utils/get-system'
 
 interface Props {
@@ -151,7 +159,7 @@ export const GroupsEditorViewer = (props: Props) => {
     [t],
   )
   const themeMode = useThemeMode()
-  const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null)
+  const editorRef = useRef<MonacoEditorInstance | null>(null)
   const [prevData, setPrevData] = useState('')
   const [currData, setCurrData] = useState('')
   const [visualization, setVisualization] = useState(true)
@@ -281,16 +289,6 @@ export const GroupsEditorViewer = (props: Props) => {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   )
-  const reorder = (
-    list: IProxyGroupConfig[],
-    startIndex: number,
-    endIndex: number,
-  ) => {
-    const result = Array.from(list)
-    const [removed] = result.splice(startIndex, 1)
-    result.splice(endIndex, 0, removed)
-    return result
-  }
   const onPrependDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event
     if (over) {
@@ -306,7 +304,7 @@ export const GroupsEditorViewer = (props: Props) => {
           }
         })
 
-        setPrependSeq(reorder(prependSeq, activeIndex, overIndex))
+        setPrependSeq(arrayMove(prependSeq, activeIndex, overIndex))
       }
     }
   }
@@ -324,7 +322,7 @@ export const GroupsEditorViewer = (props: Props) => {
             overIndex = index
           }
         })
-        setAppendSeq(reorder(appendSeq, activeIndex, overIndex))
+        setAppendSeq(arrayMove(appendSeq, activeIndex, overIndex))
       }
     }
   }
@@ -508,7 +506,11 @@ export const GroupsEditorViewer = (props: Props) => {
         setCurrData(nextData)
       }
 
-      await saveProfileFile(property, nextData)
+      if (!(await saveProfileFile(property, nextData))) {
+        await fetchContent()
+        onClose()
+        return
+      }
       showNotice.success('shared.feedback.notifications.saved')
       setPrevData(nextData)
       onSave?.(prevData, nextData)
@@ -528,7 +530,7 @@ export const GroupsEditorViewer = (props: Props) => {
     >
       <DialogTitle>
         {
-          <Box display="flex" justifyContent="space-between">
+          <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
             {t('profiles.modals.groupsEditor.title')}
             <Box>
               <Button

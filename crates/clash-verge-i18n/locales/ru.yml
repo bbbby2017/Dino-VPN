@@ -34,6 +34,7 @@ notifications:
 service:
   adminInstallPrompt: Для установки службы DinoVPN требуются права администратора.
   adminUninstallPrompt: Для удаления службы DinoVPN требуются права администратора.
+  translocatedCorePath: DinoVPN is running from a temporary (App Translocation) path and can't locate the core. Please move DinoVPN into the Applications folder and reopen it.
 tray:
   dashboard: Панель
   ruleMode: Режим правил
