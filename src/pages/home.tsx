@@ -522,7 +522,14 @@ const HomePage = () => {
       />
 
       {/* 首次启动欢迎弹窗 */}
-      <Dialog open={welcomeOpen} maxWidth="sm" fullWidth disableEscapeKeyDown>
+      <Dialog
+        open={welcomeOpen}
+        maxWidth="sm"
+        fullWidth
+        onClose={(_event, reason) => {
+          if (reason === 'escapeKeyDown') return
+        }}
+      >
         <DialogTitle sx={{ fontWeight: 700, fontSize: 22 }}>
           🎉 欢迎使用Dino-VPN
         </DialogTitle>

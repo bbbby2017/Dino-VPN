@@ -23,7 +23,7 @@ import {
 } from '@mui/material'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import type { CSSProperties } from 'react'
+import type { ComponentType, CSSProperties } from 'react'
 import {
   lazy,
   Suspense,
@@ -71,7 +71,11 @@ import {
 import 'dayjs/locale/ru'
 import 'dayjs/locale/zh-cn'
 
-const LogsPage = lazy(() => preloadLogsPage())
+const LogsPage = lazy(() =>
+  preloadLogsPage().then((m) => ({
+    default: m.default as ComponentType<{ active?: boolean }>,
+  })),
+)
 
 type NavItem = (typeof navItems)[number]
 

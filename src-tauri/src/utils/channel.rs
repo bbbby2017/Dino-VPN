@@ -150,7 +150,9 @@ pub async fn apply_channel_config() {
 
                     // Trigger core engine reload and UI refresh
                     use crate::core::{CoreManager, handle};
-                    if let Ok((true, _)) = CoreManager::global().update_config().await {
+                    if let Ok(outcome) = CoreManager::global().update_config_forced().await
+                        && outcome.is_valid()
+                    {
                         handle::Handle::refresh_clash();
                         logging!(info, Type::Setup, "代理服务端应用节点成功");
                     }
