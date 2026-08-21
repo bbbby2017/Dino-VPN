@@ -45,21 +45,6 @@ import {
 } from '@/services/cmds'
 import { showNotice } from '@/services/notice-service'
 
-const LazyTestCard = lazy(() =>
-  import('@/components/home/test-card').then((module) => ({
-    default: module.TestCard,
-  })),
-)
-const LazyIpInfoCard = lazy(() =>
-  import('@/components/home/ip-info-card').then((module) => ({
-    default: module.IpInfoCard,
-  })),
-)
-const LazyClashInfoCard = lazy(() =>
-  import('@/components/home/clash-info-card').then((module) => ({
-    default: module.ClashInfoCard,
-  })),
-)
 const LazySystemInfoCard = lazy(() =>
   import('@/components/home/system-info-card').then((module) => ({
     default: module.SystemInfoCard,
@@ -74,10 +59,7 @@ interface HomeCardsSettings {
   mode: boolean
   traffic: boolean
   info: boolean
-  clashinfo: boolean
   systeminfo: boolean
-  test: boolean
-  ip: boolean
   [key: string]: boolean
 }
 
@@ -168,33 +150,6 @@ const HomeSettingsDialog = ({
               />
             }
             label={t('home.page.settings.cards.traffic')}
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={cards.test || false}
-                onChange={() => handleToggle('test')}
-              />
-            }
-            label={t('home.page.settings.cards.tests')}
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={cards.ip || false}
-                onChange={() => handleToggle('ip')}
-              />
-            }
-            label={t('home.page.settings.cards.ip')}
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={cards.clashinfo || false}
-                onChange={() => handleToggle('clashinfo')}
-              />
-            }
-            label={t('home.page.settings.cards.clashInfo')}
           />
           <FormControlLabel
             control={
@@ -310,10 +265,7 @@ const HomePage = () => {
       network: true,
       mode: true,
       traffic: false,
-      clashinfo: true,
       systeminfo: true,
-      test: true,
-      ip: true,
     }),
     [],
   )
@@ -406,24 +358,6 @@ const HomePage = () => {
           <EnhancedTrafficStats />
         </EnhancedCard>,
         12,
-      ),
-      renderCard(
-        'test',
-        <Suspense fallback={<Skeleton variant="rectangular" height={200} />}>
-          <LazyTestCard />
-        </Suspense>,
-      ),
-      renderCard(
-        'ip',
-        <Suspense fallback={<Skeleton variant="rectangular" height={200} />}>
-          <LazyIpInfoCard />
-        </Suspense>,
-      ),
-      renderCard(
-        'clashinfo',
-        <Suspense fallback={<Skeleton variant="rectangular" height={200} />}>
-          <LazyClashInfoCard />
-        </Suspense>,
       ),
       renderCard(
         'systeminfo',
