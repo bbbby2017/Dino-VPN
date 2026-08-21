@@ -77,7 +77,6 @@ pub fn resolve_setup_async() {
             init_hotkey(),
             init_auto_lightweight_boot(),
             init_auto_backup(),
-            init_silent_updater(),
         );
 
         Handle::refresh_clash();
@@ -138,6 +137,7 @@ pub(super) async fn init_auto_backup() {
     logging_error!(Type::Setup, AutoBackupManager::global().init().await);
 }
 
+#[expect(dead_code, reason = "updater plugin disabled; kept for future re-enable")]
 async fn init_silent_updater() {
     use crate::core::SilentUpdater;
     use crate::core::handle::Handle;
