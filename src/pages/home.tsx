@@ -225,8 +225,8 @@ const HomePage = () => {
           >
             <span>
               <Button
-                variant="text"
-                color="inherit"
+                variant="contained"
+                color="success"
                 size="small"
                 onClick={handleQuickFix}
                 disabled={quickFixLoading || !profiles?.current}
