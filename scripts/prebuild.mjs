@@ -604,6 +604,13 @@ function parseServiceVersionFromUrl(url) {
 }
 
 async function getLatestServiceVersion() {
+  // MUST stay in sync with clash_verge_service_ipc version in src-tauri/Cargo.toml.
+  // Service binary and IPC crate use a protocol version check; a mismatch
+  // breaks core startup with "service protocol version does not match".
+  SERVICE_VERSION = 'v2.3.3'
+  log_info(`Locked service version: ${SERVICE_VERSION}`)
+  return
+
   if (!FORCE) {
     const cached = await getCachedVersion('SERVICE_VERSION')
     if (cached) {
