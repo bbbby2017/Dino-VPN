@@ -49,7 +49,7 @@ pub fn open_devtools(app_handle: AppHandle) {
 /// 窗口 label 统一为 `page-{标识}`，capabilities 按 `page-*` 通配授权；
 /// URL 用 `/?window={标识}` 入口页重写方案（见 index.html），与主窗口加载同构
 const PAGE_WINDOWS: &[(&str, &str, &str)] = &[
-    ("profile", "DinoVPN - 订阅", "/profiles"),
+    ("profile", "DinoVPN - 订阅", "/profile"),
     ("connections", "DinoVPN - 连接", "/connections"),
     ("logs", "DinoVPN - 日志", "/logs"),
     ("settings", "DinoVPN - 设置", "/settings"),
