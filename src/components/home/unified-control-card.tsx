@@ -361,7 +361,7 @@ const NodeSelector = () => {
                 <NetworkCheckOutlined />
               )
             }
-            sx={{ flexShrink: 0, height: 40 }}
+            sx={{ flexShrink: 0, height: 40, minWidth: 112 }}
           >
             {testing ? '检测中' : '延迟检测'}
           </Button>
