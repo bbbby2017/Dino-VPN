@@ -285,11 +285,9 @@ const NodeSelector = () => {
       {!isDirectMode && (
         <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
           <FormControl variant="outlined" size="small" sx={{ flex: 1, minWidth: 0 }}>
-            <InputLabel>{t('home.components.currentProxy.labels.proxy')}</InputLabel>
             <Select
               value={selectedProxy}
               onChange={handleProxyChange}
-              label={t('home.components.currentProxy.labels.proxy')}
               MenuProps={{
                 slotProps: { paper: { style: { maxHeight: 400 } } },
               }}
