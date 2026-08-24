@@ -466,7 +466,7 @@ export const UnifiedControlCard = () => {
 
         {/* 第三段：节点选择 */}
         <Box>
-          <Typography variant="caption" sx={sectionLabel}>
+          <Typography variant="caption" sx={{ ...sectionLabel, mb: 1.5 }}>
             节点选择
           </Typography>
           <NodeSelector />
