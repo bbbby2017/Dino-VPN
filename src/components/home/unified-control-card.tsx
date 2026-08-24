@@ -293,9 +293,30 @@ const NodeSelector = () => {
               MenuProps={{
                 slotProps: { paper: { style: { maxHeight: 400 } } },
               }}
-              renderValue={(v) => (
-                <Typography noWrap>{v}</Typography>
-              )}
+              renderValue={(v) => {
+                const record = records[v as string]
+                const delayValue =
+                  record && selectedGroup
+                    ? delayManager.getDelayFix(record, selectedGroup)
+                    : -1
+                return (
+                  <Stack
+                    direction="row"
+                    spacing={1}
+                    sx={{ alignItems: 'center', overflow: 'hidden' }}
+                  >
+                    <Typography noWrap sx={{ flex: 1 }}>
+                      {v}
+                    </Typography>
+                    <Chip
+                      size="small"
+                      label={delayManager.formatDelay(delayValue)}
+                      color={convertDelayColor(delayValue)}
+                      sx={{ minWidth: 54, height: 20, flexShrink: 0 }}
+                    />
+                  </Stack>
+                )
+              }}
             >
               {proxyOptions.map((name) => {
                 const record = records[name]
