@@ -168,7 +168,8 @@ const NodeSelector = () => {
 
   const proxyOptions: string[] = useMemo(() => {
     const extractNames = (all: any[]): string[] =>
-      all.map((item) => (typeof item === 'string' ? item : item?.name ?? ''))
+      all
+        .map((item) => (typeof item === 'string' ? item : (item?.name ?? '')))
         .filter(Boolean)
 
     if (isGlobalMode) {
@@ -228,12 +229,8 @@ const NodeSelector = () => {
             )
           : groups.find((g: ProxyGroup) => g.name === selectedGroup)
         return (source?.all ?? [])
-          .map((item) =>
-            typeof item === 'string' ? item : item?.name ?? '',
-          )
-          .filter(
-            (n) => n && n !== 'DIRECT' && n !== 'REJECT',
-          )
+          .map((item) => (typeof item === 'string' ? item : (item?.name ?? '')))
+          .filter((n) => n && n !== 'DIRECT' && n !== 'REJECT')
       }
       const delayProxies = collectNames()
         .map((name) => records[name])
@@ -261,12 +258,43 @@ const NodeSelector = () => {
     )
   }
 
+  if (isDirectMode) return null
+
   return (
-    <Stack spacing={1.5}>
+    <Stack spacing={1}>
+      {/* 标题 + 延迟检测按钮 */}
+      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+        <Typography
+          variant="caption"
+          sx={{
+            flex: 1,
+            color: 'text.secondary',
+            fontWeight: 600,
+            letterSpacing: 0.4,
+          }}
+        >
+          节点选择
+        </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          onClick={handleCheckDelay}
+          disabled={testing}
+          startIcon={
+            testing ? <CircularProgress size={14} /> : <NetworkCheckOutlined />
+          }
+          sx={{ flexShrink: 0, height: 32, minWidth: 112 }}
+        >
+          {testing ? '检测中' : '延迟检测'}
+        </Button>
+      </Stack>
+
       {/* 代理组选择 (rule 模式下显示) */}
-      {!isGlobalMode && !isDirectMode && groups.length > 1 && (
+      {!isGlobalMode && groups.length > 1 && (
         <FormControl fullWidth variant="outlined" size="small">
-          <InputLabel>{t('home.components.currentProxy.labels.group')}</InputLabel>
+          <InputLabel>
+            {t('home.components.currentProxy.labels.group')}
+          </InputLabel>
           <Select
             value={selectedGroup}
             onChange={handleGroupChange}
@@ -281,90 +309,70 @@ const NodeSelector = () => {
         </FormControl>
       )}
 
-      {/* 节点选择 + 延迟检测 */}
-      {!isDirectMode && (
-        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-          <FormControl variant="outlined" size="small" sx={{ flex: 1, minWidth: 0 }}>
-            <Select
-              value={selectedProxy}
-              onChange={handleProxyChange}
-              MenuProps={{
-                slotProps: { paper: { style: { maxHeight: 400 } } },
-              }}
-              renderValue={(v) => {
-                const record = records[v as string]
-                const delayValue =
-                  record && selectedGroup
-                    ? delayManager.getDelayFix(record, selectedGroup)
-                    : -1
-                return (
-                  <Stack
-                    direction="row"
-                    spacing={1}
-                    sx={{ alignItems: 'center', overflow: 'hidden' }}
-                  >
-                    <Typography noWrap sx={{ flex: 1 }}>
-                      {v}
-                    </Typography>
-                    <Chip
-                      size="small"
-                      label={delayManager.formatDelay(delayValue)}
-                      color={convertDelayColor(delayValue)}
-                      sx={{ minWidth: 54, height: 20, flexShrink: 0 }}
-                    />
-                  </Stack>
-                )
-              }}
-            >
-              {proxyOptions.map((name) => {
-                const record = records[name]
-                const delayValue =
-                  record && selectedGroup
-                    ? delayManager.getDelayFix(record, selectedGroup)
-                    : -1
-                return (
-                  <MenuItem
-                    key={name}
-                    value={name}
-                    sx={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      pr: 1,
-                    }}
-                  >
-                    <Typography noWrap sx={{ flex: 1, mr: 1 }}>
-                      {name}
-                    </Typography>
-                    <Chip
-                      size="small"
-                      label={delayManager.formatDelay(delayValue)}
-                      color={convertDelayColor(delayValue)}
-                      sx={{ minWidth: 54, height: 20, flexShrink: 0 }}
-                    />
-                  </MenuItem>
-                )
-              })}
-            </Select>
-          </FormControl>
-          <Button
-            size="small"
-            variant="outlined"
-            onClick={handleCheckDelay}
-            disabled={testing}
-            startIcon={
-              testing ? (
-                <CircularProgress size={14} />
-              ) : (
-                <NetworkCheckOutlined />
-              )
-            }
-            sx={{ flexShrink: 0, height: 40, minWidth: 112 }}
-          >
-            {testing ? '检测中' : '延迟检测'}
-          </Button>
-        </Stack>
-      )}
+      {/* 节点选择框（整行拉长） */}
+      <FormControl fullWidth variant="outlined" size="small">
+        <Select
+          value={selectedProxy}
+          onChange={handleProxyChange}
+          MenuProps={{
+            slotProps: { paper: { style: { maxHeight: 400 } } },
+          }}
+          renderValue={(v) => {
+            const record = records[v as string]
+            const delayValue =
+              record && selectedGroup
+                ? delayManager.getDelayFix(record, selectedGroup)
+                : -1
+            return (
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{ alignItems: 'center', overflow: 'hidden' }}
+              >
+                <Typography noWrap sx={{ flex: 1 }}>
+                  {v}
+                </Typography>
+                <Chip
+                  size="small"
+                  label={delayManager.formatDelay(delayValue)}
+                  color={convertDelayColor(delayValue)}
+                  sx={{ minWidth: 54, height: 20, flexShrink: 0 }}
+                />
+              </Stack>
+            )
+          }}
+        >
+          {proxyOptions.map((name) => {
+            const record = records[name]
+            const delayValue =
+              record && selectedGroup
+                ? delayManager.getDelayFix(record, selectedGroup)
+                : -1
+            return (
+              <MenuItem
+                key={name}
+                value={name}
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  pr: 1,
+                }}
+              >
+                <Typography noWrap sx={{ flex: 1, mr: 1 }}>
+                  {name}
+                </Typography>
+                <Chip
+                  size="small"
+                  label={delayManager.formatDelay(delayValue)}
+                  color={convertDelayColor(delayValue)}
+                  sx={{ minWidth: 54, height: 20, flexShrink: 0 }}
+                />
+              </MenuItem>
+            )
+          })}
+        </Select>
+      </FormControl>
     </Stack>
   )
 }
@@ -374,8 +382,7 @@ const NodeSelector = () => {
 export const UnifiedControlCard = () => {
   const { t } = useTranslation()
   const { verge, mutateVerge, patchVerge } = useVerge()
-  const { indicator: systemProxyOn, toggleSystemProxy } =
-    useSystemProxyState()
+  const { indicator: systemProxyOn, toggleSystemProxy } = useSystemProxyState()
   const { isTunModeAvailable } = useSystemState()
   const { current } = useProfiles()
 
@@ -463,12 +470,7 @@ export const UnifiedControlCard = () => {
         </Box>
 
         {/* 第三段：节点选择 */}
-        <Box>
-          <Typography variant="caption" sx={{ ...sectionLabel, mb: 1.5 }}>
-            节点选择
-          </Typography>
-          <NodeSelector />
-        </Box>
+        <NodeSelector />
 
         {/* 第四段：订阅摘要 */}
         {(updatedText || trafficText) && (
