@@ -1,13 +1,8 @@
-import { Button, Typography } from '@mui/material'
-import { useLockFn } from 'ahooks'
-import React, { useRef, useState } from 'react'
+import React, { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { DialogRef, Switch, TooltipIcon } from '@/components/base'
 import ProxyControlSwitches from '@/components/shared/proxy-control-switches'
-import { useServiceInstaller } from '@/hooks/use-service-installer'
-import { useServiceUninstaller } from '@/hooks/use-service-uninstaller'
-import { useSystemState } from '@/hooks/use-system-state'
 import { useVerge } from '@/hooks/use-verge'
 
 import { GuardState } from './mods/guard-state'
@@ -23,30 +18,6 @@ const SettingSystem = ({ onError }: Props) => {
   const { t } = useTranslation()
 
   const { verge, mutateVerge, patchVerge } = useVerge()
-  const { isServiceOk, mutateSystemState } = useSystemState()
-  const { installServiceAndRestartCore } = useServiceInstaller()
-  const { uninstallServiceAndRestartCore } = useServiceUninstaller()
-  const [serviceBusy, setServiceBusy] = useState(false)
-
-  const handleServiceAction = useLockFn(async () => {
-    setServiceBusy(true)
-    try {
-      if (isServiceOk) {
-        // 卸载前先关闭 TUN，避免残留虚拟网卡
-        if (verge?.enable_tun_mode) {
-          await patchVerge({ enable_tun_mode: false })
-        }
-        await uninstallServiceAndRestartCore()
-      } else {
-        await installServiceAndRestartCore()
-      }
-      await mutateSystemState()
-    } catch {
-      // 错误通知已在 hook 内弹出
-    } finally {
-      setServiceBusy(false)
-    }
-  })
 
   const { enable_auto_launch, enable_silent_start } = verge ?? {}
 
@@ -65,33 +36,6 @@ const SettingSystem = ({ onError }: Props) => {
     <SettingList title={t('settings.sections.system.title')}>
       <SysproxyViewer ref={sysproxyRef} />
       <TunViewer ref={tunRef} />
-
-      <SettingItem label="服务模式">
-        <React.Fragment>
-          <Typography
-            variant="body2"
-            sx={{
-              fontSize: 13,
-              mr: 1,
-              color: isServiceOk ? 'success.main' : 'text.disabled',
-            }}
-          >
-            {isServiceOk ? '已安装' : '未安装'}
-          </Typography>
-          <Button
-            size="small"
-            variant="outlined"
-            color={isServiceOk ? 'secondary' : 'primary'}
-            disabled={serviceBusy}
-            onClick={handleServiceAction}
-            sx={{ minWidth: 88 }}
-          >
-            {isServiceOk
-              ? t('settings.sections.proxyControl.actions.uninstallService')
-              : t('settings.sections.proxyControl.actions.installService')}
-          </Button>
-        </React.Fragment>
-      </SettingItem>
 
       <ProxyControlSwitches
         label={t('settings.sections.system.toggles.tunMode')}
