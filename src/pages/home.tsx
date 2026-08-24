@@ -8,15 +8,12 @@ import {
 import {
   Box,
   Button,
-  Checkbox,
   Chip,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControlLabel,
-  FormGroup,
   Grid,
   TextField,
   Tooltip,
@@ -48,79 +45,6 @@ interface HomeCardsSettings {
   traffic: boolean
   info: boolean
   [key: string]: boolean
-}
-
-// 首页设置对话框组件接口
-interface HomeSettingsDialogProps {
-  open: boolean
-  onClose: () => void
-  homeCards: HomeCardsSettings
-  onSave: (cards: HomeCardsSettings) => void
-}
-
-const serializeCardFlags = (cards: HomeCardsSettings) =>
-  Object.keys(cards)
-    .sort()
-    .map((key) => `${key}:${cards[key] ? 1 : 0}`)
-    .join('|')
-
-// 首页设置对话框组件
-const HomeSettingsDialog = ({
-  open,
-  onClose,
-  homeCards,
-  onSave,
-}: HomeSettingsDialogProps) => {
-  const { t } = useTranslation()
-  const [cards, setCards] = useState<HomeCardsSettings>(homeCards)
-  const { patchVerge } = useVerge()
-
-  const handleToggle = (key: string) => {
-    setCards((prev: HomeCardsSettings) => ({
-      ...prev,
-      [key]: !prev[key],
-    }))
-  }
-
-  const handleSave = async () => {
-    await patchVerge({ home_cards: cards })
-    onSave(cards)
-    onClose()
-  }
-
-  return (
-    <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle>{t('home.page.settings.title')}</DialogTitle>
-      <DialogContent>
-        <FormGroup>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={cards.connection || false}
-                onChange={() => handleToggle('connection')}
-              />
-            }
-            label="连接与控制"
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={cards.traffic || false}
-                onChange={() => handleToggle('traffic')}
-              />
-            }
-            label={t('home.page.settings.cards.traffic')}
-          />
-        </FormGroup>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>{t('shared.actions.cancel')}</Button>
-        <Button onClick={handleSave} color="primary">
-          {t('shared.actions.save')}
-        </Button>
-      </DialogActions>
-    </Dialog>
-  )
 }
 
 const HomePage = () => {
@@ -211,13 +135,6 @@ const HomePage = () => {
     }
   }, [subUrl, mutateProfiles])
 
-  // 设置弹窗的状态
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [localHomeCards, setLocalHomeCards] = useState<{
-    value: HomeCardsSettings
-    baseSignature: string
-  } | null>(null)
-
   // 卡片显示状态
   const defaultCards = useMemo<HomeCardsSettings>(
     () => ({
@@ -233,29 +150,10 @@ const HomePage = () => {
     [verge],
   )
 
-  const remoteHomeCards = useMemo<HomeCardsSettings>(
+  const effectiveHomeCards = useMemo<HomeCardsSettings>(
     () => vergeHomeCards ?? defaultCards,
     [defaultCards, vergeHomeCards],
   )
-
-  const remoteSignature = useMemo(
-    () => serializeCardFlags(remoteHomeCards),
-    [remoteHomeCards],
-  )
-
-  const pendingLocalCards = useMemo<HomeCardsSettings | null>(() => {
-    if (!localHomeCards) return null
-    return localHomeCards.baseSignature === remoteSignature
-      ? localHomeCards.value
-      : null
-  }, [localHomeCards, remoteSignature])
-
-  const effectiveHomeCards = pendingLocalCards ?? remoteHomeCards
-
-  // 新增：打开设置弹窗
-  const openSettings = useCallback(() => {
-    setSettingsOpen(true)
-  }, [])
 
   const renderCard = useCallback(
     (cardKey: string, component: React.ReactNode, size: number = 6) => {
@@ -282,27 +180,6 @@ const HomePage = () => {
     )
   }, [effectiveHomeCards.connection])
 
-  // 新增：保存设置时用requestIdleCallback/setTimeout
-  const handleSaveSettings = (newCards: HomeCardsSettings) => {
-    if (window.requestIdleCallback) {
-      window.requestIdleCallback(() =>
-        setLocalHomeCards({
-          value: newCards,
-          baseSignature: remoteSignature,
-        }),
-      )
-    } else {
-      setTimeout(
-        () =>
-          setLocalHomeCards({
-            value: newCards,
-            baseSignature: remoteSignature,
-          }),
-        0,
-      )
-    }
-  }
-
   const nonCriticalCards = useMemo(
     () => [
       renderCard(
@@ -318,10 +195,6 @@ const HomePage = () => {
       ),
     ],
     [t, renderCard],
-  )
-  const dialogKey = useMemo(
-    () => `${serializeCardFlags(effectiveHomeCards)}:${settingsOpen ? 1 : 0}`,
-    [effectiveHomeCards, settingsOpen],
   )
   return (
     <BasePage
@@ -394,11 +267,11 @@ const HomePage = () => {
             variant="text"
             color="inherit"
             size="small"
-            onClick={openSettings}
+            onClick={() => navigate('/settings')}
             startIcon={<SettingsOutlined />}
             sx={{ fontWeight: 'bold' }}
           >
-            {t('home.page.tooltips.settings')}
+            设置
           </Button>
         </Box>
       }
@@ -408,15 +281,6 @@ const HomePage = () => {
 
         {nonCriticalCards}
       </Grid>
-
-      {/* 首页设置弹窗 */}
-      <HomeSettingsDialog
-        key={dialogKey}
-        open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        homeCards={effectiveHomeCards}
-        onSave={handleSaveSettings}
-      />
 
       {/* 首次启动欢迎弹窗 */}
       <Dialog
