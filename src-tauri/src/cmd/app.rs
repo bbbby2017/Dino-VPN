@@ -1,6 +1,7 @@
 use super::CmdResult;
 use crate::core::autostart;
 use crate::{cmd::StringifyErr as _, feat, utils::dirs};
+use clash_verge_logging::{Type, logging_error};
 use smartstring::alias::String;
 use tauri::{AppHandle, Manager as _};
 
@@ -42,6 +43,75 @@ pub fn open_devtools(app_handle: AppHandle) {
             window.close_devtools();
         }
     }
+}
+
+/// 顶栏页面子窗口白名单：页面标识 → (窗口标题, 路由路径)
+/// 窗口 label 统一为 `page-{标识}`，capabilities 按 `page-*` 通配授权
+const PAGE_WINDOWS: &[(&str, &str, &str)] = &[
+    ("profile", "DinoVPN - 订阅", "/profiles"),
+    ("connections", "DinoVPN - 连接", "/connections"),
+    ("logs", "DinoVPN - 日志", "/logs"),
+    ("settings", "DinoVPN - 设置", "/settings"),
+];
+
+/// 打开顶栏页面的独立子窗口（订阅/连接/日志/设置）
+///
+/// 已打开则聚焦（取消最小化并置前），不存在则创建；
+/// 子窗口不受主窗口尺寸限制，关闭即销毁（关闭拦截仅针对主窗口）。
+#[tauri::command]
+pub async fn open_page_window(app_handle: AppHandle, page: String) -> CmdResult<()> {
+    let page = page.as_str();
+    let Some((key, title, path)) = PAGE_WINDOWS
+        .iter()
+        .find(|(key, _, _)| *key == page)
+        .copied()
+    else {
+        return Err(format!("unknown page: {page}").into());
+    };
+    let label = format!("page-{key}");
+
+    // 已打开则聚焦，避免重复窗口
+    if let Some(window) = app_handle.get_webview_window(&label) {
+        let _ = window.unminimize();
+        let _ = window.show();
+        logging_error!(Type::Window, window.set_focus());
+        return Ok(());
+    }
+
+    // 与主窗口保持一致的主题/背景色，避免启动白闪
+    let (resolved_theme, background_color, initial_script) =
+        crate::utils::resolve::window::resolve_window_theme().await;
+
+    let mut builder = tauri::WebviewWindowBuilder::new(
+        &app_handle,
+        &label,
+        tauri::WebviewUrl::App(path.into()),
+    )
+    .title(title)
+    .center()
+    .decorations(crate::utils::resolve::window::DEFAULT_DECORATIONS)
+    .inner_size(940.0, 700.0)
+    .min_inner_size(520.0, 520.0)
+    .visible(false) // 等主题色就绪后再展示，避免启动色差
+    .initialization_script(&initial_script)
+    .on_page_load(|window, payload| {
+        if payload.event() != tauri::webview::PageLoadEvent::Finished {
+            return;
+        }
+        logging_error!(Type::Window, window.show());
+        logging_error!(Type::Window, window.set_focus());
+    });
+
+    if let Some(theme) = resolved_theme {
+        builder = builder.theme(Some(theme));
+    }
+
+    builder
+        .background_color(background_color)
+        .build()
+        .map_err(|e| e.to_string())?;
+
+    Ok(())
 }
 
 /// 退出应用

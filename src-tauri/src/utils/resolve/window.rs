@@ -22,9 +22,9 @@ const MINIMAL_WIDTH: f64 = 520.0;
 const MINIMAL_HEIGHT: f64 = 520.0;
 
 #[cfg(target_os = "linux")]
-const DEFAULT_DECORATIONS: bool = false;
+pub(crate) const DEFAULT_DECORATIONS: bool = false;
 #[cfg(not(target_os = "linux"))]
-const DEFAULT_DECORATIONS: bool = true;
+pub(crate) const DEFAULT_DECORATIONS: bool = true;
 
 const fn restored_window_size_is_too_small(width: u32, height: u32) -> bool {
     width < MINIMAL_WIDTH as u32 || height < MINIMAL_HEIGHT as u32
@@ -46,13 +46,12 @@ fn restore_default_size_if_needed(window: &WebviewWindow) {
     logging_error!(Type::Window, window.center());
 }
 
-/// 构建新的 WebView 窗口
-pub async fn build_new_window() -> Result<WebviewWindow, String> {
-    let app_handle = handle::Handle::app_handle();
-
+/// 解析窗口主题初始化参数（主窗口与子窗口共用，保证主题/背景色一致）
+///
+/// 返回 (窗口主题, 背景色, 初始化脚本)：脚本会在页面加载前设置主题变量与背景色，避免启动白闪。
+pub(crate) async fn resolve_window_theme() -> (Option<Theme>, Color, String) {
     let config = Config::verge().await;
     let latest = config.latest_arc();
-    let start_page = latest.start_page.as_deref().unwrap_or("/");
     let initial_theme_mode = match latest.theme_mode.as_deref() {
         Some("dark") => "dark",
         Some("light") => "light",
@@ -77,7 +76,24 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
         LIGHT_BACKGROUND_COLOR
     };
 
-    let initial_script = build_window_initial_script(initial_theme_mode, DARK_BACKGROUND_HEX, LIGHT_BACKGROUND_HEX);
+    let initial_script = build_window_initial_script(
+        initial_theme_mode,
+        DARK_BACKGROUND_HEX,
+        LIGHT_BACKGROUND_HEX,
+    );
+
+    (resolved_theme, background_color, initial_script)
+}
+
+/// 构建新的 WebView 窗口
+pub async fn build_new_window() -> Result<WebviewWindow, String> {
+    let app_handle = handle::Handle::app_handle();
+
+    let config = Config::verge().await;
+    let latest = config.latest_arc();
+    let start_page = latest.start_page.as_deref().unwrap_or("/");
+
+    let (resolved_theme, background_color, initial_script) = resolve_window_theme().await;
 
     let mut builder = tauri::WebviewWindowBuilder::new(
         app_handle,

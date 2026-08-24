@@ -326,6 +326,14 @@ export async function restartApp() {
   return invoke<void>('restart_app')
 }
 
+/** 顶栏页面子窗口标识 */
+export type PageWindowKey = 'profile' | 'connections' | 'logs' | 'settings'
+
+/** 在独立子窗口中打开顶栏页面（已打开则聚焦） */
+export async function openPageWindow(page: PageWindowKey) {
+  return invoke<void>('open_page_window', { page })
+}
+
 export async function getAppDir() {
   return invoke<string>('get_app_dir')
 }

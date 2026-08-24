@@ -1,7 +1,8 @@
 import { ArrowBack } from '@mui/icons-material'
 import { IconButton, Typography } from '@mui/material'
 import { useTheme } from '@mui/material/styles'
-import React, { ReactNode } from 'react'
+import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow'
+import React, { ReactNode, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 
 import { BaseErrorBoundary } from './base-error-boundary'
@@ -22,6 +23,12 @@ export const BasePage: React.FC<Props> = (props) => {
 
   const isDark = theme.palette.mode === 'dark'
 
+  // 子窗口（顶栏页面窗口）里不显示返回箭头，避免把独立窗口导航回首页
+  const isMainWindow = useMemo(
+    () => getCurrentWebviewWindow().label === 'main',
+    [],
+  )
+
   return (
     <BaseErrorBoundary>
       <div className="base-page">
@@ -33,7 +40,7 @@ export const BasePage: React.FC<Props> = (props) => {
               pointerEvents: 'auto',
             }}
           >
-            {pathname !== '/' && (
+            {isMainWindow && pathname !== '/' && (
               <IconButton
                 onClick={() => navigate('/')}
                 edge="start"
