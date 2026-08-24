@@ -69,12 +69,20 @@ impl CoreManager {
     }
 
     pub async fn update_config_checked(&self) -> Result<()> {
-        let outcome = self.update_config_forced().await?;
-        if outcome.is_valid() {
-            Ok(())
-        } else {
-            Err(anyhow!("{outcome}"))
+        // 连续开关（如 TUN）时上一次更新可能仍在进行，Busy 等待重试而非报错，
+        // 否则本次修改会被丢弃导致内核状态与 verge 配置不一致
+        const MAX_RETRIES: usize = 40;
+        for _ in 0..MAX_RETRIES {
+            let outcome = self.update_config_forced().await?;
+            match outcome {
+                ValidationOutcome::Busy => {
+                    tokio::time::sleep(std::time::Duration::from_millis(400)).await;
+                }
+                o if o.is_valid() => return Ok(()),
+                o => return Err(anyhow!("{o}")),
+            }
         }
+        Err(anyhow!("Configuration update timed out: still busy"))
     }
 
     fn should_update_config(&self) -> bool {
