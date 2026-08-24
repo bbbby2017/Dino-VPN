@@ -1,7 +1,9 @@
-import { TuneOutlined } from '@mui/icons-material'
+import { NetworkCheckOutlined, TuneOutlined } from '@mui/icons-material'
 import {
   Box,
+  Button,
   Chip,
+  CircularProgress,
   Divider,
   FormControl,
   InputLabel,
@@ -13,9 +15,11 @@ import {
   alpha,
   useTheme,
 } from '@mui/material'
+import { useLockFn } from 'ahooks'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import dayjs from 'dayjs'
+import { delayGroup } from 'tauri-plugin-mihomo-api'
 
 import { Switch } from '@/components/base'
 import { EnhancedCard } from '@/components/home/enhanced-card'
@@ -103,6 +107,7 @@ const NodeSelector = () => {
   const { proxies } = useProxiesData()
   const { clashConfig } = useClashConfigData()
   const { refreshProxy } = useAppRefreshers()
+  const { verge } = useVerge()
 
   const { handleSelectChange } = useProxySelection({
     onSuccess: () => refreshProxy(),
@@ -132,6 +137,7 @@ const NodeSelector = () => {
     const saved = localStorage.getItem(STORAGE_KEY_PROXY)
     return saved || ''
   })
+  const [testing, setTesting] = useState(false)
 
   // Auto-pick first group if nothing selected
   useEffect(() => {
@@ -209,6 +215,44 @@ const NodeSelector = () => {
     ],
   )
 
+  // 延迟检测：测试当前组全部节点
+  const handleCheckDelay = useLockFn(async () => {
+    if (!selectedGroup || isDirectMode) return
+    setTesting(true)
+    try {
+      const timeout = verge?.default_latency_timeout || 10000
+      const collectNames = (): string[] => {
+        const source = isGlobalMode
+          ? groups.find(
+              (g: ProxyGroup) => g.name === 'GLOBAL' || g.name === 'global',
+            )
+          : groups.find((g: ProxyGroup) => g.name === selectedGroup)
+        return (source?.all ?? [])
+          .map((item) =>
+            typeof item === 'string' ? item : item?.name ?? '',
+          )
+          .filter(
+            (n) => n && n !== 'DIRECT' && n !== 'REJECT',
+          )
+      }
+      const delayProxies = collectNames()
+        .map((name) => records[name])
+        .filter(Boolean)
+      if (delayProxies.length > 0) {
+        const url = delayManager.getUrl(selectedGroup)
+        await Promise.race([
+          delayManager.checkListDelay(delayProxies, selectedGroup, timeout),
+          delayGroup(selectedGroup, url, timeout),
+        ])
+      }
+      refreshProxy()
+    } catch (error) {
+      console.error('[UnifiedControlCard] 延迟测试出错', error)
+    } finally {
+      setTesting(false)
+    }
+  })
+
   if (groups.length === 0) {
     return (
       <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
@@ -237,52 +281,70 @@ const NodeSelector = () => {
         </FormControl>
       )}
 
-      {/* 节点选择 */}
+      {/* 节点选择 + 延迟检测 */}
       {!isDirectMode && (
-        <FormControl fullWidth variant="outlined" size="small">
-          <InputLabel>{t('home.components.currentProxy.labels.proxy')}</InputLabel>
-          <Select
-            value={selectedProxy}
-            onChange={handleProxyChange}
-            label={t('home.components.currentProxy.labels.proxy')}
-            MenuProps={{
-              slotProps: { paper: { style: { maxHeight: 400 } } },
-            }}
-            renderValue={(v) => (
-              <Typography noWrap>{v}</Typography>
-            )}
-          >
-            {proxyOptions.map((name) => {
-              const record = records[name]
-              const delayValue =
-                record && selectedGroup
-                  ? delayManager.getDelayFix(record, selectedGroup)
-                  : -1
-              return (
-                <MenuItem
-                  key={name}
-                  value={name}
-                  sx={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    pr: 1,
-                  }}
-                >
-                  <Typography noWrap sx={{ flex: 1, mr: 1 }}>
-                    {name}
-                  </Typography>
-                  <Chip
-                    size="small"
-                    label={delayManager.formatDelay(delayValue)}
-                    color={convertDelayColor(delayValue)}
-                    sx={{ minWidth: 54, height: 20, flexShrink: 0 }}
-                  />
-                </MenuItem>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+          <FormControl variant="outlined" size="small" sx={{ flex: 1, minWidth: 0 }}>
+            <InputLabel>{t('home.components.currentProxy.labels.proxy')}</InputLabel>
+            <Select
+              value={selectedProxy}
+              onChange={handleProxyChange}
+              label={t('home.components.currentProxy.labels.proxy')}
+              MenuProps={{
+                slotProps: { paper: { style: { maxHeight: 400 } } },
+              }}
+              renderValue={(v) => (
+                <Typography noWrap>{v}</Typography>
+              )}
+            >
+              {proxyOptions.map((name) => {
+                const record = records[name]
+                const delayValue =
+                  record && selectedGroup
+                    ? delayManager.getDelayFix(record, selectedGroup)
+                    : -1
+                return (
+                  <MenuItem
+                    key={name}
+                    value={name}
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      pr: 1,
+                    }}
+                  >
+                    <Typography noWrap sx={{ flex: 1, mr: 1 }}>
+                      {name}
+                    </Typography>
+                    <Chip
+                      size="small"
+                      label={delayManager.formatDelay(delayValue)}
+                      color={convertDelayColor(delayValue)}
+                      sx={{ minWidth: 54, height: 20, flexShrink: 0 }}
+                    />
+                  </MenuItem>
+                )
+              })}
+            </Select>
+          </FormControl>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={handleCheckDelay}
+            disabled={testing}
+            startIcon={
+              testing ? (
+                <CircularProgress size={14} />
+              ) : (
+                <NetworkCheckOutlined />
               )
-            })}
-          </Select>
-        </FormControl>
+            }
+            sx={{ flexShrink: 0, height: 40 }}
+          >
+            {testing ? '检测中' : '延迟检测'}
+          </Button>
+        </Stack>
       )}
     </Stack>
   )
