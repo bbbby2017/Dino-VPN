@@ -210,24 +210,24 @@ const ProxyControlSwitches = ({
           extraIcons={
             <>
               {!isTunModeAvailable && (
-                <>
-                  <TooltipIcon
-                    title={t(
-                      'settings.sections.proxyControl.tooltips.tunUnavailable',
-                    )}
-                    icon={WarningRounded}
-                    sx={{ color: 'warning.main', ml: 1 }}
-                  />
-                  <TooltipIcon
-                    title={t(
-                      'settings.sections.proxyControl.actions.installService',
-                    )}
-                    icon={BuildRounded}
-                    color="primary"
-                    onClick={onInstallService}
-                    sx={{ ml: 1 }}
-                  />
-                </>
+                <TooltipIcon
+                  title={t(
+                    'settings.sections.proxyControl.tooltips.tunUnavailable',
+                  )}
+                  icon={WarningRounded}
+                  sx={{ color: 'warning.main', ml: 1 }}
+                />
+              )}
+              {!isServiceOk && (
+                <TooltipIcon
+                  title={t(
+                    'settings.sections.proxyControl.actions.installService',
+                  )}
+                  icon={BuildRounded}
+                  color="primary"
+                  onClick={onInstallService}
+                  sx={{ ml: 1 }}
+                />
               )}
               {isServiceOk && (
                 <TooltipIcon
