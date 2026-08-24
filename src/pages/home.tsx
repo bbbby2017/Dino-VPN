@@ -20,13 +20,13 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { useCallback, useMemo, useState } from 'react'
+import { lazy, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router'
 
 import { BasePage } from '@/components/base'
 import { EnhancedCard } from '@/components/home/enhanced-card'
 import { EnhancedTrafficStats } from '@/components/home/enhanced-traffic-stats'
+import { HeaderPageDialog } from '@/components/home/header-page-dialog'
 import { UnifiedControlCard } from '@/components/home/unified-control-card'
 import { useProfiles } from '@/hooks/use-profiles'
 import { useSystemState } from '@/hooks/use-system-state'
@@ -40,6 +40,14 @@ import {
 } from '@/services/cmds'
 import { showNotice } from '@/services/notice-service'
 
+// 弹窗页面懒加载（与路由同 chunk，不重复打包）
+const ProfilePage = lazy(() => import('@/pages/profiles'))
+const ConnectionsPage = lazy(() => import('@/pages/connections'))
+const LogPage = lazy(() => import('@/pages/logs'))
+const SettingPage = lazy(() => import('@/pages/settings'))
+
+type HeaderDialog = 'profile' | 'connections' | 'logs' | 'settings' | null
+
 // 定义首页卡片设置接口
 interface HomeCardsSettings {
   connection: boolean
@@ -49,7 +57,6 @@ interface HomeCardsSettings {
 }
 
 const HomePage = () => {
-  const navigate = useNavigate()
   const { t } = useTranslation()
   const { verge } = useVerge()
   const { profiles, current, mutateProfiles } = useProfiles()
@@ -64,6 +71,9 @@ const HomePage = () => {
   }, [isAdminMode, isSidecarMode, t])
 
   const autoLaunchEnabled = verge?.enable_auto_launch || false
+
+  // 顶栏页面弹窗：订阅/连接/日志/设置
+  const [activeDialog, setActiveDialog] = useState<HeaderDialog>(null)
 
   // Welcome dialog state — derive `welcomeOpen` from profiles + dismissed flag
   // to avoid `setState` calls inside `useEffect` (eslint set-state-in-effect)
@@ -248,7 +258,7 @@ const HomePage = () => {
             variant="text"
             color="inherit"
             size="small"
-            onClick={() => navigate('/profile')}
+            onClick={() => setActiveDialog('profile')}
             startIcon={<RssFeedOutlined />}
             sx={{ fontWeight: 'bold' }}
           >
@@ -258,7 +268,7 @@ const HomePage = () => {
             variant="text"
             color="inherit"
             size="small"
-            onClick={() => navigate('/connections')}
+            onClick={() => setActiveDialog('connections')}
             startIcon={<DnsOutlined />}
             sx={{ fontWeight: 'bold' }}
           >
@@ -268,7 +278,7 @@ const HomePage = () => {
             variant="text"
             color="inherit"
             size="small"
-            onClick={() => navigate('/logs')}
+            onClick={() => setActiveDialog('logs')}
             startIcon={<HistoryEduOutlined />}
             sx={{ fontWeight: 'bold' }}
           >
@@ -278,7 +288,7 @@ const HomePage = () => {
             variant="text"
             color="inherit"
             size="small"
-            onClick={() => navigate('/settings')}
+            onClick={() => setActiveDialog('settings')}
             startIcon={<SettingsOutlined />}
             sx={{ fontWeight: 'bold' }}
           >
@@ -292,6 +302,32 @@ const HomePage = () => {
 
         {nonCriticalCards}
       </Grid>
+
+      {/* 顶栏页面弹窗 */}
+      <HeaderPageDialog
+        open={activeDialog === 'profile'}
+        onClose={() => setActiveDialog(null)}
+      >
+        <ProfilePage />
+      </HeaderPageDialog>
+      <HeaderPageDialog
+        open={activeDialog === 'connections'}
+        onClose={() => setActiveDialog(null)}
+      >
+        <ConnectionsPage />
+      </HeaderPageDialog>
+      <HeaderPageDialog
+        open={activeDialog === 'logs'}
+        onClose={() => setActiveDialog(null)}
+      >
+        <LogPage />
+      </HeaderPageDialog>
+      <HeaderPageDialog
+        open={activeDialog === 'settings'}
+        onClose={() => setActiveDialog(null)}
+      >
+        <SettingPage />
+      </HeaderPageDialog>
 
       {/* 首次启动欢迎弹窗 */}
       <Dialog
