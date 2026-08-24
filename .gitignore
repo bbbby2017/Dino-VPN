@@ -24,3 +24,6 @@ openspec/
 .github/skills/
 AGENTS.md
 .zed
+
+# 临时参考源码副本
+.tmp/

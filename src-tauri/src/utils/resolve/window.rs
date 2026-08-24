@@ -76,11 +76,7 @@ pub(crate) async fn resolve_window_theme() -> (Option<Theme>, Color, String) {
         LIGHT_BACKGROUND_COLOR
     };
 
-    let initial_script = build_window_initial_script(
-        initial_theme_mode,
-        DARK_BACKGROUND_HEX,
-        LIGHT_BACKGROUND_HEX,
-    );
+    let initial_script = build_window_initial_script(initial_theme_mode, DARK_BACKGROUND_HEX, LIGHT_BACKGROUND_HEX);
 
     (resolved_theme, background_color, initial_script)
 }

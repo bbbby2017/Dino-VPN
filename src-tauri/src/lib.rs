@@ -140,6 +140,7 @@ mod app_init {
             cmd::open_logs_dir,
             cmd::open_web_url,
             cmd::open_page_window,
+            cmd::frontend_log,
             cmd::open_core_dir,
             cmd::get_portable_flag,
             cmd::get_network_interfaces,
@@ -458,22 +459,38 @@ pub fn run() {
                 }
             }
         }
-        tauri::RunEvent::WindowEvent { label, event, .. } if label == "main" => match event {
-            tauri::WindowEvent::CloseRequested { .. } => {
-                event_handlers::handle_window_close(&event);
-            }
-            tauri::WindowEvent::Focused(focused) => {
-                // 兜底：原生取消最小化只触发 Focused、不走 activate_window（macOS）
-                #[cfg(target_os = "macos")]
-                if focused {
-                    crate::utils::resolve::window::reload_main_window_if_needed();
+        tauri::RunEvent::WindowEvent { label, event, .. } => match label.as_str() {
+            "main" => match event {
+                tauri::WindowEvent::CloseRequested { .. } => {
+                    event_handlers::handle_window_close(&event);
                 }
-                event_handlers::handle_window_focus(focused);
-            }
-            #[cfg(target_os = "macos")]
-            tauri::WindowEvent::Destroyed => {
-                event_handlers::handle_window_destroyed();
-            }
+                tauri::WindowEvent::Focused(focused) => {
+                    // 兜底：原生取消最小化只触发 Focused、不走 activate_window（macOS）
+                    #[cfg(target_os = "macos")]
+                    if focused {
+                        crate::utils::resolve::window::reload_main_window_if_needed();
+                    }
+                    event_handlers::handle_window_focus(focused);
+                }
+                #[cfg(target_os = "macos")]
+                tauri::WindowEvent::Destroyed => {
+                    event_handlers::handle_window_destroyed();
+                }
+                _ => {}
+            },
+            label if label.starts_with("page-") => match event {
+                // 子窗口关闭链路诊断：确认 CloseRequested 是否到达 Tauri 以及窗口是否真的销毁
+                tauri::WindowEvent::CloseRequested { .. } => {
+                    log::info!("[Window] 页面子窗口收到关闭请求: {label}");
+                }
+                tauri::WindowEvent::Destroyed => {
+                    log::info!("[Window] 页面子窗口已销毁: {label}");
+                }
+                tauri::WindowEvent::Focused(focused) => {
+                    log::info!("[Window] 页面子窗口焦点变化: {label} -> {focused}");
+                }
+                _ => {}
+            },
             _ => {}
         },
         _ => {}

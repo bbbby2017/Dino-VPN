@@ -56,6 +56,24 @@
       var internals = window.__TAURI_INTERNALS__
       if (!internals) return
 
+      var currentLabel =
+        internals.metadata &&
+        internals.metadata.currentWindow &&
+        internals.metadata.currentWindow.label
+
+      // 入口诊断：确认脚本执行时的窗口与 URL（写入 Rust 日志，卡点即断点）
+      try {
+        internals
+          .invoke('frontend_log', {
+            message:
+              'index.html 入口脚本: label=' +
+              (currentLabel || 'unknown') +
+              ' url=' +
+              location.href,
+          })
+          .catch(function () { })
+      } catch (e) { }
+
       // 顶栏页面子窗口：/?window=xxx 重写到对应路由（必须在路由初始化前执行），
       // 让子窗口与主窗口加载完全同构的入口页，避免子路径加载差异
       try {
@@ -70,11 +88,7 @@
       } catch (e) { }
 
       // 只在主窗口执行主窗口的显示/聚焦，避免子窗口加载时抢夺主窗口焦点
-      var isMain =
-        internals.metadata &&
-        internals.metadata.currentWindow &&
-        internals.metadata.currentWindow.label === 'main'
-      if (isMain) {
+      if (currentLabel === 'main') {
         internals
           .invoke('plugin:window|show', { label: 'main' })
           .catch(function () { })

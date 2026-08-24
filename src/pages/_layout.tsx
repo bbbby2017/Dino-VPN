@@ -52,6 +52,7 @@ import { useI18n } from '@/hooks/use-i18n'
 import { useVerge } from '@/hooks/use-verge'
 import { useVisibility } from '@/hooks/use-visibility'
 import { useWindowDecorations } from '@/hooks/use-window'
+import { frontendLog } from '@/services/frontend-log'
 import { useThemeMode } from '@/services/states'
 import getSystem from '@/utils/get-system'
 
@@ -143,6 +144,20 @@ const Layout = () => {
   const isLogsPage = pathname === '/logs'
   const pageVisible = useVisibility()
   const themeReady = useMemo(() => Boolean(theme), [theme])
+
+  // 子窗口渲染链路诊断：确认 Layout 挂载与主题就绪状态
+  useEffect(() => {
+    frontendLog(
+      `Layout 挂载: pathname=${pathname} themeReady=${String(themeReady)}`,
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    if (themeReady) {
+      frontendLog(`主题就绪，loading overlay 将隐藏: pathname=${pathname}`)
+    }
+  }, [themeReady, pathname])
 
   const [menuUnlocked, setMenuUnlocked] = useState(false)
   const [menuContextPosition, setMenuContextPosition] =

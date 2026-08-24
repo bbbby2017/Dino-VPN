@@ -64,11 +64,7 @@ pub async fn open_page_window(app_handle: AppHandle, page: String) -> CmdResult<
     use clash_verge_logging::logging;
 
     let page = page.as_str();
-    let Some((key, title, path)) = PAGE_WINDOWS
-        .iter()
-        .find(|(key, _, _)| *key == page)
-        .copied()
-    else {
+    let Some((key, title, path)) = PAGE_WINDOWS.iter().find(|(key, _, _)| *key == page).copied() else {
         return Err(format!("unknown page: {page}").into());
     };
     let label = format!("page-{key}");
@@ -90,40 +86,26 @@ pub async fn open_page_window(app_handle: AppHandle, page: String) -> CmdResult<
     // 避免子路径在 dev/prod 环境下的加载差异
     let entry_url = format!("/?window={key}");
 
-    logging!(
-        info,
-        Type::Window,
-        "创建页面子窗口: {label} -> {entry_url} ({path})"
-    );
+    logging!(info, Type::Window, "创建页面子窗口: {label} -> {entry_url} ({path})");
 
-    let mut builder = tauri::WebviewWindowBuilder::new(
-        &app_handle,
-        &label,
-        tauri::WebviewUrl::App(entry_url.into()),
-    )
-    .title(title)
-    .center()
-    .decorations(crate::utils::resolve::window::DEFAULT_DECORATIONS)
-    .inner_size(940.0, 700.0)
-    .min_inner_size(520.0, 520.0)
-    .visible(true) // 背景色已就绪，直接显示，不依赖页面加载事件
-    .initialization_script(&initial_script)
-    .general_autofill_enabled(false)
-    .on_page_load(move |window, payload| {
-        use clash_verge_logging::logging;
+    let mut builder = tauri::WebviewWindowBuilder::new(&app_handle, &label, tauri::WebviewUrl::App(entry_url.into()))
+        .title(title)
+        .center()
+        .decorations(crate::utils::resolve::window::DEFAULT_DECORATIONS)
+        .inner_size(940.0, 700.0)
+        .min_inner_size(520.0, 520.0)
+        .visible(true) // 背景色已就绪，直接显示，不依赖页面加载事件
+        .initialization_script(&initial_script)
+        .general_autofill_enabled(false)
+        .on_page_load(move |window, payload| {
+            use clash_verge_logging::logging;
 
-        let event = payload.event();
-        logging!(
-            info,
-            Type::Window,
-            "页面子窗口加载事件: {} {:?}",
-            window.label(),
-            event
-        );
-        if event == tauri::webview::PageLoadEvent::Finished {
-            logging_error!(Type::Window, window.set_focus());
-        }
-    });
+            let event = payload.event();
+            logging!(info, Type::Window, "页面子窗口加载事件: {} {:?}", window.label(), event);
+            if event == tauri::webview::PageLoadEvent::Finished {
+                logging_error!(Type::Window, window.set_focus());
+            }
+        });
 
     if let Some(theme) = resolved_theme {
         builder = builder.theme(Some(theme));
@@ -135,6 +117,15 @@ pub async fn open_page_window(app_handle: AppHandle, page: String) -> CmdResult<
         .map_err(|e| e.to_string())?;
 
     Ok(())
+}
+
+/// 前端诊断日志：把 webview 内的关键节点写入 Rust 日志文件，
+/// 用于排查子窗口加载卡点（IPC 挂起时日志会中断在卡点处）
+#[tauri::command]
+pub async fn frontend_log(message: String) {
+    use clash_verge_logging::logging;
+
+    logging!(info, Type::Window, "[Frontend] {message}");
 }
 
 /// 退出应用
