@@ -2,7 +2,6 @@ import {
   BuildOutlined,
   DnsOutlined,
   HistoryEduOutlined,
-  RouterOutlined,
   SettingsOutlined,
   SpeedOutlined,
 } from '@mui/icons-material'
@@ -10,6 +9,7 @@ import {
   Box,
   Button,
   Checkbox,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -18,23 +18,20 @@ import {
   FormControlLabel,
   FormGroup,
   Grid,
-  Skeleton,
   TextField,
   Tooltip,
   Typography,
 } from '@mui/material'
-import { Suspense, lazy, useCallback, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 
 import { BasePage } from '@/components/base'
-import { ClashModeCard } from '@/components/home/clash-mode-card'
-import { CurrentProxyCard } from '@/components/home/current-proxy-card'
 import { EnhancedCard } from '@/components/home/enhanced-card'
 import { EnhancedTrafficStats } from '@/components/home/enhanced-traffic-stats'
-import { HomeProfileCard } from '@/components/home/home-profile-card'
-import { ProxyTunCard } from '@/components/home/proxy-tun-card'
+import { UnifiedControlCard } from '@/components/home/unified-control-card'
 import { useProfiles } from '@/hooks/use-profiles'
+import { useSystemState } from '@/hooks/use-system-state'
 import { useVerge } from '@/hooks/use-verge'
 import {
   enhanceProfiles,
@@ -45,21 +42,11 @@ import {
 } from '@/services/cmds'
 import { showNotice } from '@/services/notice-service'
 
-const LazySystemInfoCard = lazy(() =>
-  import('@/components/home/system-info-card').then((module) => ({
-    default: module.SystemInfoCard,
-  })),
-)
-
 // 定义首页卡片设置接口
 interface HomeCardsSettings {
-  profile: boolean
-  proxy: boolean
-  network: boolean
-  mode: boolean
+  connection: boolean
   traffic: boolean
   info: boolean
-  systeminfo: boolean
   [key: string]: boolean
 }
 
@@ -109,38 +96,11 @@ const HomeSettingsDialog = ({
           <FormControlLabel
             control={
               <Checkbox
-                checked={cards.profile || false}
-                onChange={() => handleToggle('profile')}
+                checked={cards.connection || false}
+                onChange={() => handleToggle('connection')}
               />
             }
-            label={t('home.page.settings.cards.profile')}
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={cards.proxy || false}
-                onChange={() => handleToggle('proxy')}
-              />
-            }
-            label={t('home.page.settings.cards.currentProxy')}
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={cards.network || false}
-                onChange={() => handleToggle('network')}
-              />
-            }
-            label={t('home.page.settings.cards.network')}
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={cards.mode || false}
-                onChange={() => handleToggle('mode')}
-              />
-            }
-            label={t('home.page.settings.cards.proxyMode')}
+            label="连接与控制"
           />
           <FormControlLabel
             control={
@@ -150,15 +110,6 @@ const HomeSettingsDialog = ({
               />
             }
             label={t('home.page.settings.cards.traffic')}
-          />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={cards.systeminfo || false}
-                onChange={() => handleToggle('systeminfo')}
-              />
-            }
-            label={t('home.page.settings.cards.systemInfo')}
           />
         </FormGroup>
       </DialogContent>
@@ -177,6 +128,17 @@ const HomePage = () => {
   const { t } = useTranslation()
   const { verge } = useVerge()
   const { profiles, current, mutateProfiles } = useProfiles()
+  const { isAdminMode, isSidecarMode } = useSystemState()
+
+  // 运行模式文本
+  const runningModeText = useMemo(() => {
+    if (isAdminMode && !isSidecarMode) return t('home.components.systemInfo.badges.adminServiceMode')
+    if (isAdminMode) return t('home.components.systemInfo.badges.adminMode')
+    if (isSidecarMode) return t('home.components.systemInfo.badges.sidecarMode')
+    return t('home.components.systemInfo.badges.serviceMode')
+  }, [isAdminMode, isSidecarMode, t])
+
+  const autoLaunchEnabled = verge?.enable_auto_launch || false
 
   // Welcome dialog state — derive `welcomeOpen` from profiles + dismissed flag
   // to avoid `setState` calls inside `useEffect` (eslint set-state-in-effect)
@@ -260,12 +222,8 @@ const HomePage = () => {
   const defaultCards = useMemo<HomeCardsSettings>(
     () => ({
       info: false,
-      profile: true,
-      proxy: true,
-      network: true,
-      mode: true,
+      connection: true,
       traffic: false,
-      systeminfo: true,
     }),
     [],
   )
@@ -312,18 +270,17 @@ const HomePage = () => {
     [effectiveHomeCards],
   )
 
-  const criticalCards = useMemo(
-    () => [
-      renderCard(
-        'profile',
-        <HomeProfileCard current={current} onProfileUpdated={mutateProfiles} />,
-      ),
-      renderCard('proxy', <CurrentProxyCard />),
-      renderCard('network', <NetworkSettingsCard />),
-      renderCard('mode', <ClashModeEnhancedCard />),
-    ],
-    [current, mutateProfiles, renderCard],
-  )
+  const criticalCards = useMemo(() => {
+    if (!effectiveHomeCards.connection) return null
+
+    return (
+      <Grid size={12} sx={{ display: 'flex', justifyContent: 'center' }}>
+        <Box sx={{ width: 420, maxWidth: '100%' }}>
+          <UnifiedControlCard />
+        </Box>
+      </Grid>
+    )
+  }, [effectiveHomeCards.connection])
 
   // 新增：保存设置时用requestIdleCallback/setTimeout
   const handleSaveSettings = (newCards: HomeCardsSettings) => {
@@ -359,12 +316,6 @@ const HomePage = () => {
         </EnhancedCard>,
         12,
       ),
-      renderCard(
-        'systeminfo',
-        <Suspense fallback={<Skeleton variant="rectangular" height={200} />}>
-          <LazySystemInfoCard />
-        </Suspense>,
-      ),
     ],
     [t, renderCard],
   )
@@ -374,10 +325,22 @@ const HomePage = () => {
   )
   return (
     <BasePage
-      title={t('home.page.title')}
+      title=""
       contentStyle={{ padding: 2 }}
       header={
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Chip
+            size="small"
+            label={autoLaunchEnabled ? '开机自启' : '未自启'}
+            color={autoLaunchEnabled ? 'success' : 'default'}
+            variant={autoLaunchEnabled ? 'filled' : 'outlined'}
+          />
+          <Chip
+            size="small"
+            label={runningModeText}
+            color="primary"
+            variant="outlined"
+          />
           <Tooltip
             title={
               !profiles?.current ? t('home.page.quickFix.tooltipNoProfile') : ''
@@ -506,36 +469,6 @@ const HomePage = () => {
         </DialogActions>
       </Dialog>
     </BasePage>
-  )
-}
-
-// 增强版网络设置卡片组件
-const NetworkSettingsCard = () => {
-  const { t } = useTranslation()
-  return (
-    <EnhancedCard
-      title={t('home.page.cards.networkSettings')}
-      icon={<DnsOutlined />}
-      iconColor="primary"
-      action={null}
-    >
-      <ProxyTunCard />
-    </EnhancedCard>
-  )
-}
-
-// 增强版 Clash 模式卡片组件
-const ClashModeEnhancedCard = () => {
-  const { t } = useTranslation()
-  return (
-    <EnhancedCard
-      title={t('home.page.cards.proxyMode')}
-      icon={<RouterOutlined />}
-      iconColor="info"
-      action={null}
-    >
-      <ClashModeCard />
-    </EnhancedCard>
   )
 }
 

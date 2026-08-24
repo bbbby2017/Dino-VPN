@@ -169,75 +169,16 @@ const ProfileDetails = ({
           </Stack>
         )}
 
-        {current.updated && (
+        {current.extra && current.extra.expire > 0 && (
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <UpdateOutlined
-              fontSize="small"
-              color="action"
-              sx={{
-                cursor: 'pointer',
-                animation: updating ? `${round} 1.5s linear infinite` : 'none',
-              }}
-              onClick={onUpdateProfile}
-            />
-            <Typography
-              variant="body2"
-              color="text.secondary"
-              sx={{ cursor: 'pointer' }}
-              onClick={onUpdateProfile}
-            >
-              {t('shared.labels.updateTime')}:{' '}
+            <EventOutlined fontSize="small" color="action" />
+            <Typography variant="body2" color="text.secondary">
+              {t('shared.labels.expireTime')}:{' '}
               <Box component="span" sx={{ fontWeight: 'medium' }}>
-                {dayjs(current.updated * 1000).format('YYYY-MM-DD HH:mm')}
+                {parseExpire(current.extra.expire)}
               </Box>
             </Typography>
           </Stack>
-        )}
-
-        {current.extra && (
-          <>
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-              <SpeedOutlined fontSize="small" color="action" />
-              <Typography variant="body2" color="text.secondary">
-                {t('shared.labels.usedTotal')}:{' '}
-                <Box component="span" sx={{ fontWeight: 'medium' }}>
-                  {parseTraffic(usedTraffic)} /{' '}
-                  {parseTraffic(current.extra.total)}
-                </Box>
-              </Typography>
-            </Stack>
-
-            {current.extra.expire > 0 && (
-              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                <EventOutlined fontSize="small" color="action" />
-                <Typography variant="body2" color="text.secondary">
-                  {t('shared.labels.expireTime')}:{' '}
-                  <Box component="span" sx={{ fontWeight: 'medium' }}>
-                    {parseExpire(current.extra.expire)}
-                  </Box>
-                </Typography>
-              </Stack>
-            )}
-
-            <Box sx={{ mt: 1 }}>
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                sx={{ mb: 0.5, display: 'block' }}
-              >
-                {trafficPercentage}%
-              </Typography>
-              <LinearProgress
-                variant="determinate"
-                value={trafficPercentage}
-                sx={{
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: alpha(theme.palette.primary.main, 0.12),
-                }}
-              />
-            </Box>
-          </>
         )}
       </Stack>
     </Box>
