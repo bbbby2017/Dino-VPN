@@ -2,6 +2,7 @@ import {
   BuildOutlined,
   DnsOutlined,
   HistoryEduOutlined,
+  RssFeedOutlined,
   SettingsOutlined,
   SpeedOutlined,
 } from '@mui/icons-material'
@@ -243,6 +244,16 @@ const HomePage = () => {
               </Button>
             </span>
           </Tooltip>
+          <Button
+            variant="text"
+            color="inherit"
+            size="small"
+            onClick={() => navigate('/profile')}
+            startIcon={<RssFeedOutlined />}
+            sx={{ fontWeight: 'bold' }}
+          >
+            订阅
+          </Button>
           <Button
             variant="text"
             color="inherit"
