@@ -259,7 +259,7 @@ const HomePage = () => {
             size="small"
             onClick={() => navigate('/logs')}
             startIcon={<HistoryEduOutlined />}
-            sx={{ mr: 1, fontWeight: 'bold' }}
+            sx={{ fontWeight: 'bold' }}
           >
             日志
           </Button>
