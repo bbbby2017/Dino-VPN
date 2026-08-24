@@ -45,8 +45,9 @@ pub fn open_devtools(app_handle: AppHandle) {
     }
 }
 
-/// 顶栏页面子窗口白名单：页面标识 → (窗口标题, 路由路径)
-/// 窗口 label 统一为 `page-{标识}`，capabilities 按 `page-*` 通配授权
+/// 顶栏页面子窗口白名单：页面标识 → (窗口标题, 前端路由路径)
+/// 窗口 label 统一为 `page-{标识}`，capabilities 按 `page-*` 通配授权；
+/// URL 用 `/?window={标识}` 入口页重写方案（见 index.html），与主窗口加载同构
 const PAGE_WINDOWS: &[(&str, &str, &str)] = &[
     ("profile", "DinoVPN - 订阅", "/profiles"),
     ("connections", "DinoVPN - 连接", "/connections"),
@@ -60,6 +61,8 @@ const PAGE_WINDOWS: &[(&str, &str, &str)] = &[
 /// 子窗口不受主窗口尺寸限制，关闭即销毁（关闭拦截仅针对主窗口）。
 #[tauri::command]
 pub async fn open_page_window(app_handle: AppHandle, page: String) -> CmdResult<()> {
+    use clash_verge_logging::logging;
+
     let page = page.as_str();
     let Some((key, title, path)) = PAGE_WINDOWS
         .iter()
@@ -72,6 +75,7 @@ pub async fn open_page_window(app_handle: AppHandle, page: String) -> CmdResult<
 
     // 已打开则聚焦，避免重复窗口
     if let Some(window) = app_handle.get_webview_window(&label) {
+        logging!(info, Type::Window, "页面子窗口已存在，聚焦: {label}");
         let _ = window.unminimize();
         let _ = window.show();
         logging_error!(Type::Window, window.set_focus());
@@ -82,24 +86,43 @@ pub async fn open_page_window(app_handle: AppHandle, page: String) -> CmdResult<
     let (resolved_theme, background_color, initial_script) =
         crate::utils::resolve::window::resolve_window_theme().await;
 
+    // 入口页与主窗口同构（/?window=xxx），由 index.html 重写到目标路由，
+    // 避免子路径在 dev/prod 环境下的加载差异
+    let entry_url = format!("/?window={key}");
+
+    logging!(
+        info,
+        Type::Window,
+        "创建页面子窗口: {label} -> {entry_url} ({path})"
+    );
+
     let mut builder = tauri::WebviewWindowBuilder::new(
         &app_handle,
         &label,
-        tauri::WebviewUrl::App(path.into()),
+        tauri::WebviewUrl::App(entry_url.into()),
     )
     .title(title)
     .center()
     .decorations(crate::utils::resolve::window::DEFAULT_DECORATIONS)
     .inner_size(940.0, 700.0)
     .min_inner_size(520.0, 520.0)
-    .visible(false) // 等主题色就绪后再展示，避免启动色差
+    .visible(true) // 背景色已就绪，直接显示，不依赖页面加载事件
     .initialization_script(&initial_script)
-    .on_page_load(|window, payload| {
-        if payload.event() != tauri::webview::PageLoadEvent::Finished {
-            return;
+    .general_autofill_enabled(false)
+    .on_page_load(move |window, payload| {
+        use clash_verge_logging::logging;
+
+        let event = payload.event();
+        logging!(
+            info,
+            Type::Window,
+            "页面子窗口加载事件: {} {:?}",
+            window.label(),
+            event
+        );
+        if event == tauri::webview::PageLoadEvent::Finished {
+            logging_error!(Type::Window, window.set_focus());
         }
-        logging_error!(Type::Window, window.show());
-        logging_error!(Type::Window, window.set_focus());
     });
 
     if let Some(theme) = resolved_theme {

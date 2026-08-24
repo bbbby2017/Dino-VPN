@@ -52,14 +52,37 @@
 <body>
   <div id="initial-loading-overlay"></div>
   <script>
-    if (window.__TAURI_INTERNALS__) {
-      window.__TAURI_INTERNALS__
-        .invoke('plugin:window|show', { label: 'main' })
-        .catch(function () { });
-      window.__TAURI_INTERNALS__
-        .invoke('plugin:window|set_focus', { label: 'main' })
-        .catch(function () { });
-    }
+    ;(function () {
+      var internals = window.__TAURI_INTERNALS__
+      if (!internals) return
+
+      // 顶栏页面子窗口：/?window=xxx 重写到对应路由（必须在路由初始化前执行），
+      // 让子窗口与主窗口加载完全同构的入口页，避免子路径加载差异
+      try {
+        var w = new URLSearchParams(location.search).get('window')
+        var map = {
+          profile: '/profiles',
+          connections: '/connections',
+          logs: '/logs',
+          settings: '/settings',
+        }
+        if (w && map[w]) history.replaceState(null, '', map[w])
+      } catch (e) { }
+
+      // 只在主窗口执行主窗口的显示/聚焦，避免子窗口加载时抢夺主窗口焦点
+      var isMain =
+        internals.metadata &&
+        internals.metadata.currentWindow &&
+        internals.metadata.currentWindow.label === 'main'
+      if (isMain) {
+        internals
+          .invoke('plugin:window|show', { label: 'main' })
+          .catch(function () { })
+        internals
+          .invoke('plugin:window|set_focus', { label: 'main' })
+          .catch(function () { })
+      }
+    })()
   </script>
   <div id="root"></div>
   <script type="module" src="./main.tsx"></script>
