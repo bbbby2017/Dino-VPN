@@ -1,6 +1,8 @@
 import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
+import { frontendLog } from './frontend-log'
+
 export const supportedLanguages = [
   'en',
   'ru',
@@ -109,6 +111,7 @@ const loadLanguageSections = async (
   language: string,
   sections: readonly string[],
 ) => {
+  frontendLog(`语言段加载开始: ${language} [${sections.join(',')}]`)
   try {
     const entries = await Promise.all(
       sections.map(async (section) => {
@@ -120,12 +123,16 @@ const loadLanguageSections = async (
         }
 
         const module = await loader()
+        frontendLog(`语言段加载完成: ${language} ${section}`)
         return [section, module.default] as const
       }),
     )
 
     return Object.fromEntries(entries)
   } catch (error) {
+    frontendLog(
+      `语言段加载失败: ${language} [${sections.join(',')}] ${String(error)}`,
+    )
     if (language !== FALLBACK_LANGUAGE) {
       console.warn(
         `Failed to load language ${language}, fallback to ${FALLBACK_LANGUAGE}, ${error}`,

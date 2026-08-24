@@ -7,6 +7,7 @@ import {
 } from 'tauri-plugin-mihomo-api'
 
 import { useVerge } from '@/hooks/use-verge'
+import { frontendLog } from '@/services/frontend-log'
 import {
   calcuProxies,
   calcuProxyProviders,
@@ -54,6 +55,11 @@ export const AppDataProvider = ({
   children: React.ReactNode
 }) => {
   const { verge } = useVerge()
+
+  // 子窗口渲染链路诊断：确认 React 树提交到 Provider 层
+  useEffect(() => {
+    frontendLog('AppDataProvider 挂载')
+  }, [])
 
   const {
     data: proxiesData,

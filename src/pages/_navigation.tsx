@@ -18,6 +18,7 @@ import RulesSvg from '@/assets/image/itemicon/rules.svg?react'
 import SettingsSvg from '@/assets/image/itemicon/settings.svg?react'
 import UnlockSvg from '@/assets/image/itemicon/unlock.svg?react'
 import { BaseLoading } from '@/components/base'
+import { frontendLog } from '@/services/frontend-log'
 import { ensureLanguageSections } from '@/services/i18n'
 
 import { navigationItems } from './_navigation-meta'
@@ -97,7 +98,24 @@ const createLazyRoute = (
   load: () => Promise<{ default: ComponentType }>,
   sections?: string | readonly string[],
 ) => {
-  const preload = createRoutePreload(load, sections)
+  // 路由 chunk 加载链路诊断：卡在哪一步日志就断在哪
+  const sectionLabel = sections
+    ? Array.isArray(sections)
+      ? sections.join(',')
+      : sections
+    : 'none'
+  const instrumentedLoad = async () => {
+    frontendLog(`页面组件 chunk 加载开始: ${sectionLabel}`)
+    try {
+      const mod = await load()
+      frontendLog(`页面组件 chunk 加载完成: ${sectionLabel}`)
+      return mod
+    } catch (error) {
+      frontendLog(`页面组件 chunk 加载失败: ${sectionLabel} ${String(error)}`)
+      throw error
+    }
+  }
+  const preload = createRoutePreload(instrumentedLoad, sections)
   const Component = lazy(preload)
   const LazyRoute = () => (
     <Suspense

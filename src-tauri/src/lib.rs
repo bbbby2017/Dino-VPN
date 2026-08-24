@@ -479,9 +479,16 @@ pub fn run() {
                 _ => {}
             },
             label if label.starts_with("page-") => match event {
-                // 子窗口关闭链路诊断：确认 CloseRequested 是否到达 Tauri 以及窗口是否真的销毁
-                tauri::WindowEvent::CloseRequested { .. } => {
-                    log::info!("[Window] 页面子窗口收到关闭请求: {label}");
+                // 子窗口关闭：日志证明 CloseRequested 到达但默认销毁流程可能被页面内状态阻塞，
+                // 这里 prevent 后改用 destroy() 强制销毁，绕过一切阻塞
+                tauri::WindowEvent::CloseRequested { api, .. } => {
+                    log::info!("[Window] 页面子窗口收到关闭请求: {label}，强制销毁");
+                    api.prevent_close();
+                    if let Some(window) = app_handle.get_webview_window(label) {
+                        if let Err(err) = window.destroy() {
+                            log::error!("[Window] 页面子窗口销毁失败: {label} {err}");
+                        }
+                    }
                 }
                 tauri::WindowEvent::Destroyed => {
                     log::info!("[Window] 页面子窗口已销毁: {label}");
