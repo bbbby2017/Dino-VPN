@@ -152,15 +152,6 @@ const NodeSelector = () => {
     }
   }, [groups, selectedGroup])
 
-  // Sync selectedProxy to group's "now"
-  useEffect(() => {
-    if (!selectedGroup) return
-    const group = groups.find((g: ProxyGroup) => g.name === selectedGroup)
-    if (group?.now && !selectedProxy) {
-      setSelectedProxy(group.now)
-    }
-  }, [groups, selectedGroup, selectedProxy])
-
   const currentGroupData = useMemo(
     () => groups.find((g: ProxyGroup) => g.name === selectedGroup),
     [groups, selectedGroup],
@@ -180,6 +171,17 @@ const NodeSelector = () => {
     }
     return extractNames(currentGroupData?.all ?? [])
   }, [isGlobalMode, groups, currentGroupData])
+
+  // Sync selectedProxy to group's "now" (subscription switches leave stale names)
+  useEffect(() => {
+    if (!selectedGroup) return
+    const group = groups.find((g: ProxyGroup) => g.name === selectedGroup)
+    if (!group?.now) return
+    if (!selectedProxy || !proxyOptions.includes(selectedProxy)) {
+      setSelectedProxy(group.now)
+      localStorage.setItem(STORAGE_KEY_PROXY, group.now)
+    }
+  }, [groups, selectedGroup, selectedProxy, proxyOptions])
 
   const handleGroupChange = useCallback(
     (e: SelectChangeEvent<string>) => {
