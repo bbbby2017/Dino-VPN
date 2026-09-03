@@ -13,6 +13,24 @@
 
 DinoVPN 是基于 [Clash Verge Rev](https://github.com/clash-verge-rev/clash-verge-rev) 二次开发的桌面代理客户端，采用 Rust + Tauri 2 构建，内置 Mihomo（Clash.Meta）内核，提供订阅管理、代理分组、连接监控、日志、规则编辑与系统代理等能力。
 
+## 相比上游 Clash Verge Rev v2.5.2 的改动
+
+DinoVPN 已合并上游 v2.5.2 的全部修复与新功能，并在其基础上做了以下定制：
+
+**品牌与分发**
+- 全面换壳为 DinoVPN：产品名、窗口标题、托盘、服务名、文档与 CI 均替换为 DinoVPN（应用 identifier 保留 `io.github.clash-verge-rev.clash-verge-rev` 以兼容既有用户数据）。
+- 清理上游品牌指向：移除 README / Issue 模板 / CI 中指向 clash-verge-rev 的第三方推广、赞助与引流链接。
+- 渠道识别（`src-tauri/src/utils/channel.rs`）：从安装包名解析 Channel ID，用于区分分发渠道。
+
+**功能与行为**
+- 关闭自动更新：移除 `tauri-plugin-updater` 的配置与注册，不再向用户推送更新（避免被上游包覆盖安装）。
+- 锁定内核与服务组件版本：mihomo 与 `clash-verge-service-ipc` 锁定在 v2.3.3，避免服务协议版本不匹配。
+- 首页重构：统一为单张「快捷控制」卡（代理开关、增强模式、代理模式、节点选择与延迟检测、订阅摘要一体化）。
+
+**构建与发布（CI）**
+- Auto Build 改为仅手动触发（移除定时任务），去除 Telegram 通知，可复用 workflow 改为本地引用。
+- 产物与 release 命名统一为 DinoVPN；macOS 采用无签名打包（无 Apple 证书场景）。
+
 ## 功能特性
 
 - 基于性能强劲的 Rust 与 Tauri 2 框架，内置 [Clash.Meta(mihomo)](https://github.com/MetaCubeX/mihomo) 内核。
