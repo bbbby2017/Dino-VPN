@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 permissions: write-all
 env:
-  TAG_NAME: autobuild
+  TAG_NAME: DinoVPN
   TAG_CHANNEL: AutoBuild
   CARGO_INCREMENTAL: 0
   RUST_BACKTRACE: short
@@ -18,7 +18,7 @@ jobs:
     name: Check Commit Needs Build
     uses: ./.github/workflows/check-commit-needs-build.yml
     with:
-      tag_name: autobuild
+      tag_name: DinoVPN
       force_build: ${{ github.event_name == 'workflow_dispatch' }}
 
   update_tag:
@@ -58,7 +58,7 @@ jobs:
           echo "BUILDTIME=$(TZ=Asia/Shanghai date)" >> $GITHUB_ENV
           VERSION=$(jq -r .version package.json)
           echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "DOWNLOAD_URL=https://github.com/bbbby2017/Dino-VPN/releases/download/autobuild" >> $GITHUB_ENV
+          echo "DOWNLOAD_URL=https://github.com/bbbby2017/Dino-VPN/releases/download/DinoVPN" >> $GITHUB_ENV
         shell: bash
 
       - run: |
@@ -113,7 +113,7 @@ jobs:
 
     uses: ./.github/workflows/clean-old-assets.yml
     with:
-      tag_name: autobuild
+      tag_name: DinoVPN
       dry_run: false
 
   autobuild-x86-windows-macos-linux:
