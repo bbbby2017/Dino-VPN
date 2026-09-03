@@ -16,7 +16,7 @@ concurrency:
 jobs:
   check_commit:
     name: Check Commit Needs Build
-    uses: clash-verge-rev/clash-verge-rev/.github/workflows/check-commit-needs-build.yml@dev
+    uses: ./.github/workflows/check-commit-needs-build.yml
     with:
       tag_name: autobuild
       force_build: ${{ github.event_name == 'workflow_dispatch' }}
@@ -114,7 +114,7 @@ jobs:
     needs: [check_commit, update_tag]
     if: ${{ needs.check_commit.outputs.should_run == 'true' && needs.update_tag.result == 'success' }}
 
-    uses: clash-verge-rev/clash-verge-rev/.github/workflows/clean-old-assets.yml@dev
+    uses: ./.github/workflows/clean-old-assets.yml
     with:
       tag_name: autobuild
       dry_run: false
