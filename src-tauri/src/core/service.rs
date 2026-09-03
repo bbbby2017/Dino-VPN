@@ -747,7 +747,7 @@ mod tests {
     #[test]
     fn detects_app_translocation_paths() {
         let path = Path::new(
-            "/private/var/folders/example/T/AppTranslocation/123/d/Clash Verge.app/Contents/MacOS/Clash Verge",
+            "/private/var/folders/example/T/AppTranslocation/123/d/DinoVPN.app/Contents/MacOS/DinoVPN",
         );
 
         assert!(is_macos_app_translocated(path));
@@ -755,25 +755,25 @@ mod tests {
 
     #[test]
     fn extracts_app_bundle_name_from_executable_path() {
-        let path = Path::new("/Applications/Clash Verge.app/Contents/MacOS/Clash Verge");
+        let path = Path::new("/Applications/DinoVPN.app/Contents/MacOS/DinoVPN");
 
         assert_eq!(
             macos_app_bundle_name(path).as_deref(),
-            Some(std::ffi::OsStr::new("Clash Verge.app"))
+            Some(std::ffi::OsStr::new("DinoVPN.app"))
         );
     }
 
     #[test]
     fn resolves_existing_core_path_from_install_roots() -> std::io::Result<()> {
         let root = test_dir("resolve-existing-core-path")?;
-        let core_dir = root.join("Clash Verge.app").join("Contents").join("MacOS");
+        let core_dir = root.join("DinoVPN.app").join("Contents").join("MacOS");
         let core_path = core_dir.join("verge-mihomo");
 
         fs::create_dir_all(&core_dir)?;
         fs::write(&core_path, b"")?;
 
         let resolved = macos_core_path_in_install_roots(
-            std::ffi::OsStr::new("Clash Verge.app"),
+            std::ffi::OsStr::new("DinoVPN.app"),
             "verge-mihomo",
             [root.as_path()],
         );

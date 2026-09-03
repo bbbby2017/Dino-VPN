@@ -47,7 +47,7 @@ pub fn resolve_setup_sync() {
 
 pub fn resolve_setup_async() {
     AsyncHandler::spawn(|| async {
-        logging!(info, Type::ClashVergeRev, "Version: {}", env!("CARGO_PKG_VERSION"));
+        logging!(info, Type::DinoVPN, "Version: {}", env!("CARGO_PKG_VERSION"));
 
         #[cfg(target_os = "macos")]
         resolve_dock_show().await;
