@@ -132,7 +132,8 @@ jobs:
             else
               # Download and parse latest.json to check version and commit hash
               echo "📥 Downloading latest.json to check version..."
-              LATEST_JSON_URL="https://github.com/clash-verge-rev/clash-verge-rev/releases/download/autobuild/latest.json"
+              # Get latest.json download URL from the current repo's release
+              LATEST_JSON_URL=$(gh release view "${{ env.TAG_NAME }}" --json assets -q '.assets[] | select(.name == "latest.json") | .browser_download_url' 2>/dev/null)
               
               LATEST_JSON_CONTENT=$(curl -sL "$LATEST_JSON_URL" 2>/dev/null || echo "")
               
