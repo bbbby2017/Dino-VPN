@@ -3,8 +3,8 @@ import React, { forwardRef, ReactNode } from 'react'
 
 // 自定义卡片组件接口
 interface EnhancedCardProps {
-  title: ReactNode
-  icon: ReactNode
+  title?: ReactNode
+  icon?: ReactNode
   action?: ReactNode
   children: ReactNode
   iconColor?: 'primary' | 'secondary' | 'error' | 'warning' | 'info' | 'success'
@@ -39,6 +39,8 @@ export const EnhancedCard = forwardRef<HTMLElement, EnhancedCardProps>(
       display: 'block',
     }
 
+    const hasHeaderLeft = Boolean(icon || title)
+
     return (
       <Box
         sx={{
@@ -61,50 +63,64 @@ export const EnhancedCard = forwardRef<HTMLElement, EnhancedCardProps>(
             borderColor: 'divider',
           }}
         >
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              minWidth: 0,
-              flex: 1,
-              overflow: 'hidden',
-            }}
-          >
+          {hasHeaderLeft && (
             <Box
               sx={{
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
-                borderRadius: 1.5,
-                width: 38,
-                height: 38,
-                mr: 1.5,
-                flexShrink: 0,
-                backgroundColor: alpha(theme.palette[iconColor].main, 0.12),
-                color: theme.palette[iconColor].main,
+                minWidth: 0,
+                flex: 1,
+                overflow: 'hidden',
               }}
             >
-              {icon}
-            </Box>
-            <Box sx={{ minWidth: 0, flex: 1 }}>
-              {typeof title === 'string' ? (
-                <Typography
-                  variant="h6"
+              {icon && (
+                <Box
                   sx={{
-                    ...titleTruncateStyle,
-                    fontWeight: 'medium',
-                    fontSize: 18,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    borderRadius: 1.5,
+                    width: 38,
+                    height: 38,
+                    mr: 1.5,
+                    flexShrink: 0,
+                    backgroundColor: alpha(theme.palette[iconColor].main, 0.12),
+                    color: theme.palette[iconColor].main,
                   }}
-                  title={title}
                 >
-                  {title}
-                </Typography>
-              ) : (
-                <Box sx={titleTruncateStyle}>{title}</Box>
+                  {icon}
+                </Box>
               )}
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                {typeof title === 'string' ? (
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      ...titleTruncateStyle,
+                      fontWeight: 'medium',
+                      fontSize: 18,
+                    }}
+                    title={title}
+                  >
+                    {title}
+                  </Typography>
+                ) : (
+                  <Box sx={titleTruncateStyle}>{title}</Box>
+                )}
+              </Box>
             </Box>
-          </Box>
-          {action && <Box sx={{ ml: 2, flexShrink: 0 }}>{action}</Box>}
+          )}
+          {action && (
+            <Box
+              sx={
+                hasHeaderLeft
+                  ? { ml: 2, flexShrink: 0 }
+                  : { flex: 1, minWidth: 0 }
+              }
+            >
+              {action}
+            </Box>
+          )}
         </Box>
         <Box
           sx={{

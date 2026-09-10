@@ -1,5 +1,5 @@
 import {
-  BuildOutlined,
+  CloseOutlined,
   DnsOutlined,
   HistoryEduOutlined,
   RssFeedOutlined,
@@ -9,36 +9,33 @@ import {
 import {
   Box,
   Button,
-  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   Grid,
+  IconButton,
   TextField,
-  Tooltip,
   Typography,
 } from '@mui/material'
-import { useCallback, useMemo, useState } from 'react'
+import { getCurrentWindow, LogicalSize } from '@tauri-apps/api/window'
+import type { ComponentType } from 'react'
+import { lazy, Suspense, useCallback, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router'
 
-import { BasePage } from '@/components/base'
+import { BaseLoading, BasePage } from '@/components/base'
 import { EnhancedCard } from '@/components/home/enhanced-card'
 import { EnhancedTrafficStats } from '@/components/home/enhanced-traffic-stats'
 import { UnifiedControlCard } from '@/components/home/unified-control-card'
 import { useProfiles } from '@/hooks/use-profiles'
-import { useSystemState } from '@/hooks/use-system-state'
 import { useVerge } from '@/hooks/use-verge'
 import {
   enhanceProfiles,
   importProfile,
   patchProfilesConfig,
-  restartCore,
-  updateProfile,
 } from '@/services/cmds'
-import { showNotice } from '@/services/notice-service'
+import { ensureLanguageSections } from '@/services/i18n'
 
 // 定义首页卡片设置接口
 interface HomeCardsSettings {
@@ -48,22 +45,131 @@ interface HomeCardsSettings {
   [key: string]: boolean
 }
 
+const PANEL_WIDTH = 800
+// 左栏与面板之间的间距，窗口加宽时必须一并计入，否则面板右侧会被裁掉
+const PANEL_GAP = 12
+
+const createPanelPage = (
+  load: () => Promise<{ default: ComponentType<any> }>,
+  sections?: string | readonly string[],
+) =>
+  lazy(async () => {
+    const [mod] = await Promise.all([
+      load(),
+      sections ? ensureLanguageSections(sections) : Promise.resolve(),
+    ])
+    return mod
+  })
+
+const PANEL_ITEMS = [
+  {
+    path: '/profile',
+    label: '订阅',
+    icon: <RssFeedOutlined />,
+    Component: createPanelPage(() => import('./profiles'), 'rules'),
+  },
+  {
+    path: '/connections',
+    label: '连接',
+    icon: <DnsOutlined />,
+    Component: createPanelPage(() => import('./connections'), 'connections'),
+  },
+  {
+    path: '/logs',
+    label: '日志',
+    icon: <HistoryEduOutlined />,
+    Component: createPanelPage(() => import('./logs'), 'logs'),
+  },
+  {
+    path: '/settings',
+    label: '设置',
+    icon: <SettingsOutlined />,
+    Component: createPanelPage(() => import('./settings')),
+  },
+]
+
 const HomePage = () => {
-  const navigate = useNavigate()
   const { t } = useTranslation()
   const { verge } = useVerge()
-  const { profiles, current, mutateProfiles } = useProfiles()
-  const { isAdminMode, isSidecarMode } = useSystemState()
+  const { profiles, mutateProfiles } = useProfiles()
 
-  // 运行模式文本
-  const runningModeText = useMemo(() => {
-    if (isAdminMode && !isSidecarMode) return t('home.components.systemInfo.badges.adminServiceMode')
-    if (isAdminMode) return t('home.components.systemInfo.badges.adminMode')
-    if (isSidecarMode) return t('home.components.systemInfo.badges.sidecarMode')
-    return t('home.components.systemInfo.badges.serviceMode')
-  }, [isAdminMode, isSidecarMode, t])
+  // 右侧弹出面板：panelPath 为空表示未展开
+  const [panelPath, setPanelPath] = useState<string | null>(null)
+  // 面板展开期间把左栏锁成固定宽度，避免窗口变宽/变窄过程中卡片左右跳动
+  const [leftWidth, setLeftWidth] = useState<number | null>(null)
+  const baseWidthRef = useRef<number | null>(null)
+  const leftColumnRef = useRef<HTMLDivElement>(null)
+  // 连点顶栏时 panelPath state 可能还没刷新，分支判断走 ref
+  const panelPathRef = useRef<string | null>(null)
+  const resizingRef = useRef(false)
 
-  const autoLaunchEnabled = verge?.enable_auto_launch || false
+  const resizeWindowWidth = useCallback(async (width: number) => {
+    const win = getCurrentWindow()
+    const scale = await win.scaleFactor()
+    const inner = (await win.innerSize()).toLogical(scale)
+    await win.setSize(new LogicalSize(width, Math.round(inner.height)))
+  }, [])
+
+  const handleTogglePanel = useCallback(
+    async (path: string) => {
+      const currentPath = panelPathRef.current
+
+      // 已展开其它页面 → 仅切换内容，窗口宽度不变
+      if (currentPath && currentPath !== path) {
+        panelPathRef.current = path
+        setPanelPath(path)
+        return
+      }
+
+      // 宽度调整期间忽略新的展开/收起，否则会记错还原宽度
+      if (resizingRef.current) return
+      resizingRef.current = true
+      try {
+        if (currentPath === path) {
+          // 收起 → 窗口还原到展开前的宽度
+          panelPathRef.current = null
+          setPanelPath(null)
+          const base = baseWidthRef.current
+          baseWidthRef.current = null
+          try {
+            if (base) await resizeWindowWidth(base)
+          } finally {
+            setLeftWidth(null)
+          }
+          return
+        }
+
+        // 未展开 → 锁住左栏当前宽度，再把窗口向右加宽
+        setLeftWidth(leftColumnRef.current?.offsetWidth ?? null)
+        panelPathRef.current = path
+        setPanelPath(path)
+        const win = getCurrentWindow()
+        const scale = await win.scaleFactor()
+        const inner = (await win.innerSize()).toLogical(scale)
+        const base = Math.round(inner.width)
+        baseWidthRef.current = base
+        await resizeWindowWidth(base + PANEL_WIDTH + PANEL_GAP)
+      } catch (err) {
+        console.error('[HomePage] 调整面板窗口宽度失败', err)
+      } finally {
+        resizingRef.current = false
+      }
+    },
+    [resizeWindowWidth],
+  )
+
+  const panelContent = useMemo(() => {
+    if (!panelPath) return null
+    const item = PANEL_ITEMS.find((entry) => entry.path === panelPath)
+    if (!item) return null
+    const PanelComponent = item.Component
+    // 日志页需要 active 才会建立日志订阅
+    return panelPath === '/logs' ? (
+      <PanelComponent active />
+    ) : (
+      <PanelComponent />
+    )
+  }, [panelPath])
 
   // Welcome dialog state — derive `welcomeOpen` from profiles + dismissed flag
   // to avoid `setState` calls inside `useEffect` (eslint set-state-in-effect)
@@ -81,31 +187,6 @@ const HomePage = () => {
     )
     return realProfiles.length === 0
   }, [profiles, welcomeDismissed])
-
-  // Quick-fix button state: prevent re-clicks while update + restart in flight
-  const [quickFixLoading, setQuickFixLoading] = useState(false)
-  const handleQuickFix = useCallback(async () => {
-    const currentUid = profiles?.current
-    if (!currentUid) return
-    setQuickFixLoading(true)
-    try {
-      try {
-        await updateProfile(currentUid)
-      } catch (err) {
-        showNotice.error('home.page.quickFix.updateFailed', err)
-        return
-      }
-      try {
-        await restartCore()
-      } catch (err) {
-        showNotice.error('home.page.quickFix.restartFailed', err)
-        return
-      }
-      showNotice.success('home.page.quickFix.success')
-    } finally {
-      setQuickFixLoading(false)
-    }
-  }, [profiles])
 
   const handleImportSub = useCallback(async () => {
     const url = subUrl.trim()
@@ -200,98 +281,112 @@ const HomePage = () => {
   return (
     <BasePage
       title=""
-      contentStyle={{ padding: 2 }}
+      headerAlign="left"
+      contentStyle={{ padding: 2, height: '100%', boxSizing: 'border-box' }}
       header={
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Chip
-            size="small"
-            label={autoLaunchEnabled ? '开机自启' : '未自启'}
-            color={autoLaunchEnabled ? 'success' : 'default'}
-            variant={autoLaunchEnabled ? 'filled' : 'outlined'}
-          />
-          <Chip
-            size="small"
-            label={runningModeText}
-            color="primary"
-            variant="outlined"
-          />
-          <Tooltip
-            title={
-              !profiles?.current ? t('home.page.quickFix.tooltipNoProfile') : ''
-            }
-            arrow
-            disableHoverListener={!!profiles?.current}
-            disableFocusListener={!!profiles?.current}
-            disableTouchListener={!!profiles?.current}
-          >
-            <span>
+          {PANEL_ITEMS.map((item) => {
+            const active = panelPath === item.path
+            return (
               <Button
-                variant="contained"
-                color="success"
+                key={item.path}
+                variant="text"
+                color={active ? 'primary' : 'inherit'}
                 size="small"
-                onClick={handleQuickFix}
-                disabled={quickFixLoading || !profiles?.current}
-                startIcon={
-                  quickFixLoading ? (
-                    <CircularProgress size={16} color="inherit" />
-                  ) : (
-                    <BuildOutlined />
-                  )
-                }
-                sx={{ fontWeight: 'bold' }}
+                onClick={() => handleTogglePanel(item.path)}
+                startIcon={item.icon}
+                sx={{
+                  fontWeight: 'bold',
+                  bgcolor: active ? 'action.selected' : 'transparent',
+                }}
               >
-                {t('home.page.quickFix.button')}
+                {item.label}
               </Button>
-            </span>
-          </Tooltip>
-          <Button
-            variant="text"
-            color="inherit"
-            size="small"
-            onClick={() => navigate('/profile')}
-            startIcon={<RssFeedOutlined />}
-            sx={{ fontWeight: 'bold' }}
-          >
-            订阅
-          </Button>
-          <Button
-            variant="text"
-            color="inherit"
-            size="small"
-            onClick={() => navigate('/connections')}
-            startIcon={<DnsOutlined />}
-            sx={{ fontWeight: 'bold' }}
-          >
-            连接
-          </Button>
-          <Button
-            variant="text"
-            color="inherit"
-            size="small"
-            onClick={() => navigate('/logs')}
-            startIcon={<HistoryEduOutlined />}
-            sx={{ fontWeight: 'bold' }}
-          >
-            日志
-          </Button>
-          <Button
-            variant="text"
-            color="inherit"
-            size="small"
-            onClick={() => navigate('/settings')}
-            startIcon={<SettingsOutlined />}
-            sx={{ fontWeight: 'bold' }}
-          >
-            设置
-          </Button>
+            )
+          })}
         </Box>
       }
     >
-      <Grid container spacing={1.5} columns={{ xs: 6, sm: 6, md: 12 }}>
-        {criticalCards}
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'stretch',
+          gap: `${PANEL_GAP}px`,
+          height: '100%',
+          overflow: 'hidden',
+        }}
+      >
+        <Box
+          ref={leftColumnRef}
+          sx={{
+            width: leftWidth ?? '100%',
+            flexShrink: 0,
+            overflow: 'auto',
+          }}
+        >
+          <Grid container spacing={1.5} columns={{ xs: 6, sm: 6, md: 12 }}>
+            {criticalCards}
 
-        {nonCriticalCards}
-      </Grid>
+            {nonCriticalCards}
+          </Grid>
+        </Box>
+
+        {panelPath && (
+          <Box
+            sx={{
+              width: PANEL_WIDTH,
+              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              borderRadius: 2,
+              overflow: 'hidden',
+              bgcolor: (theme) =>
+                theme.palette.mode === 'dark' ? '#282a36' : '#ffffff',
+            }}
+          >
+            <Box
+              sx={{
+                px: 1.5,
+                py: 0.5,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottom: 1,
+                borderColor: 'divider',
+                flexShrink: 0,
+              }}
+            >
+              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                {PANEL_ITEMS.find((item) => item.path === panelPath)?.label}
+              </Typography>
+              <IconButton
+                size="small"
+                onClick={() => handleTogglePanel(panelPath)}
+              >
+                <CloseOutlined fontSize="small" />
+              </IconButton>
+            </Box>
+            <Box sx={{ flex: 1, minHeight: 0, position: 'relative' }}>
+              <Suspense
+                fallback={
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      height: '100%',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <BaseLoading />
+                  </Box>
+                }
+              >
+                {panelContent}
+              </Suspense>
+            </Box>
+          </Box>
+        )}
+      </Box>
 
       {/* 首次启动欢迎弹窗 */}
       <Dialog

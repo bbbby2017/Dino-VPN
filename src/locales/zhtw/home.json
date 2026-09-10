@@ -8,7 +8,7 @@
     "cards": {
       "trafficStats": "流量統計",
       "networkSettings": "網路設定",
-      "proxyMode": "代理模式"
+      "proxyMode": "分流模式"
     },
     "settings": {
       "cards": {

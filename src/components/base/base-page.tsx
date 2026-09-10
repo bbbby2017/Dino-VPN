@@ -9,13 +9,21 @@ import { BaseErrorBoundary } from './base-error-boundary'
 interface Props {
   title?: React.ReactNode // the page title
   header?: React.ReactNode // something behind title
+  headerAlign?: 'left' | 'right'
   contentStyle?: React.CSSProperties
   children?: ReactNode
   full?: boolean
 }
 
 export const BasePage: React.FC<Props> = (props) => {
-  const { title, header, contentStyle, full, children } = props
+  const {
+    title,
+    header,
+    headerAlign = 'right',
+    contentStyle,
+    full,
+    children,
+  } = props
   const theme = useTheme()
   const { pathname } = useLocation()
   const navigate = useNavigate()
@@ -51,7 +59,15 @@ export const BasePage: React.FC<Props> = (props) => {
             </Typography>
           </div>
 
-          <div style={{ pointerEvents: 'auto' }}>{header}</div>
+          <div
+            style={{
+              pointerEvents: 'auto',
+              // auto margin 吸收 space-between 的剩余空间，避免随窗口变宽右移
+              ...(headerAlign === 'left' && { marginRight: 'auto' }),
+            }}
+          >
+            {header}
+          </div>
         </header>
 
         <div

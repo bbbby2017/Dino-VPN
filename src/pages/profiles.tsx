@@ -982,7 +982,14 @@ const ProfilePage = () => {
           }}
         >
           <Box sx={{ mb: 1.5 }}>
-            <Grid container spacing={{ xs: 1, lg: 1 }}>
+            <Box
+              sx={{
+                display: 'grid',
+                gap: 1,
+                // MUI 断点看的是窗口宽度，这里的容器是右侧面板，只能按容器宽度分列
+                gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+              }}
+            >
               <SortableContext
                 strategy={profileRectSortingStrategy}
                 items={profileItems.map((x) => {
@@ -990,7 +997,7 @@ const ProfilePage = () => {
                 })}
               >
                 {profileItems.map((item) => (
-                  <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={item.file}>
+                  <Box key={item.file} sx={{ minWidth: 0 }}>
                     <SortableProfileItem
                       id={item.uid}
                       selected={(switchTarget ?? profiles.current) === item.uid}
@@ -1011,8 +1018,6 @@ const ProfilePage = () => {
                       onSave={async (prev, curr) => {
                         if (prev !== curr && profiles.current === item.uid) {
                           await onEnhance(false)
-                          //  await restartCore();
-                          //   Notice.success(t("settings.feedback.notifications.clash.restartSuccess"), 1000);
                         }
                       }}
                       onDelete={() => {
@@ -1026,10 +1031,10 @@ const ProfilePage = () => {
                       isSelected={selectedProfiles.has(item.uid)}
                       onSelectionChange={() => toggleProfileSelection(item.uid)}
                     />
-                  </Grid>
+                  </Box>
                 ))}
               </SortableContext>
-            </Grid>
+            </Box>
           </Box>
           <Divider
             variant="middle"
