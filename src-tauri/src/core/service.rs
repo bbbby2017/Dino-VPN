@@ -746,9 +746,8 @@ mod tests {
 
     #[test]
     fn detects_app_translocation_paths() {
-        let path = Path::new(
-            "/private/var/folders/example/T/AppTranslocation/123/d/DinoVPN.app/Contents/MacOS/DinoVPN",
-        );
+        let path =
+            Path::new("/private/var/folders/example/T/AppTranslocation/123/d/DinoVPN.app/Contents/MacOS/DinoVPN");
 
         assert!(is_macos_app_translocated(path));
     }
@@ -772,11 +771,8 @@ mod tests {
         fs::create_dir_all(&core_dir)?;
         fs::write(&core_path, b"")?;
 
-        let resolved = macos_core_path_in_install_roots(
-            std::ffi::OsStr::new("DinoVPN.app"),
-            "verge-mihomo",
-            [root.as_path()],
-        );
+        let resolved =
+            macos_core_path_in_install_roots(std::ffi::OsStr::new("DinoVPN.app"), "verge-mihomo", [root.as_path()]);
 
         assert_eq!(resolved, Some(core_path));
 
