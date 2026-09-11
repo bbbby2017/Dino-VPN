@@ -24,3 +24,6 @@ openspec/
 .github/skills/
 AGENTS.md
 .zed
+.qoder/
+.tmp/
+.tmp-latest.log
