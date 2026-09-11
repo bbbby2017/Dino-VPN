@@ -165,7 +165,11 @@ function convertDelayColor(
   return 'default'
 }
 
-const NodeSelector = () => {
+const NodeSelector = ({
+  onAddSubscription,
+}: {
+  onAddSubscription?: () => void
+}) => {
   const { t } = useTranslation()
   const { proxies } = useProxiesData()
   const { clashConfig } = useClashConfigData()
@@ -303,9 +307,16 @@ const NodeSelector = () => {
 
   if (groups.length === 0) {
     return (
-      <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
-        {t('home.components.currentProxy.labels.noActiveNode')}
-      </Typography>
+      <Stack spacing={1} sx={{ py: 1, alignItems: 'flex-start' }}>
+        <Typography variant="body2" color="text.secondary">
+          {t('home.components.currentProxy.labels.noActiveNode')}
+        </Typography>
+        {onAddSubscription && (
+          <Button size="small" variant="contained" onClick={onAddSubscription}>
+            添加订阅
+          </Button>
+        )}
+      </Stack>
     )
   }
 
@@ -435,7 +446,11 @@ const NodeSelector = () => {
 // 两个状态徽章共用的固定宽度：容纳最长文案「管理员模式」五字，切换时不跳动
 const STATUS_CHIP_WIDTH = 86
 
-export const UnifiedControlCard = () => {
+export const UnifiedControlCard = ({
+  onAddSubscription,
+}: {
+  onAddSubscription?: () => void
+}) => {
   const { t } = useTranslation()
   const { verge, mutateVerge, patchVerge } = useVerge()
   const { indicator: systemProxyOn, toggleSystemProxy } = useSystemProxyState()
@@ -710,7 +725,7 @@ export const UnifiedControlCard = () => {
         </Box>
 
         {/* 第三段：节点选择 */}
-        <NodeSelector />
+        <NodeSelector onAddSubscription={onAddSubscription} />
 
         {/* 第四段：订阅摘要 */}
         {(current?.name || updatedText || trafficText) && (

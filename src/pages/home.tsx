@@ -171,14 +171,15 @@ const HomePage = () => {
     )
   }, [panelPath])
 
-  // Welcome dialog state — derive `welcomeOpen` from profiles + dismissed flag
-  // to avoid `setState` calls inside `useEffect` (eslint set-state-in-effect)
+  // Welcome dialog state — 自动弹出条件是派生的（避免 effect 里 setState），
+  // 另有手动开关供首页卡片主动唤起
   const [welcomeDismissed, setWelcomeDismissed] = useState(false)
+  const [welcomeManualOpen, setWelcomeManualOpen] = useState(false)
   const [subUrl, setSubUrl] = useState('')
   const [importing, setImporting] = useState(false)
   const [importError, setImportError] = useState('')
 
-  const welcomeOpen = useMemo(() => {
+  const welcomeAutoOpen = useMemo(() => {
     if (welcomeDismissed) return false
     if (!profiles) return false
     const items = profiles.items ?? []
@@ -187,6 +188,13 @@ const HomePage = () => {
     )
     return realProfiles.length === 0
   }, [profiles, welcomeDismissed])
+
+  const welcomeOpen = welcomeManualOpen || welcomeAutoOpen
+
+  const closeWelcome = useCallback(() => {
+    setWelcomeManualOpen(false)
+    setWelcomeDismissed(true)
+  }, [])
 
   const handleImportSub = useCallback(async () => {
     const url = subUrl.trim()
@@ -209,13 +217,13 @@ const HomePage = () => {
       await new Promise((r) => setTimeout(r, 300))
       await enhanceProfiles()
 
-      setWelcomeDismissed(true)
+      closeWelcome()
     } catch (e: any) {
       setImportError(String(e?.message || e || '导入失败'))
     } finally {
       setImporting(false)
     }
-  }, [subUrl, mutateProfiles])
+  }, [subUrl, mutateProfiles, closeWelcome])
 
   // 卡片显示状态
   const defaultCards = useMemo<HomeCardsSettings>(
@@ -256,7 +264,9 @@ const HomePage = () => {
     return (
       <Grid size={12} sx={{ display: 'flex', justifyContent: 'center' }}>
         <Box sx={{ width: 420, maxWidth: '100%' }}>
-          <UnifiedControlCard />
+          <UnifiedControlCard
+            onAddSubscription={() => setWelcomeManualOpen(true)}
+          />
         </Box>
       </Grid>
     )
@@ -422,10 +432,7 @@ const HomePage = () => {
           />
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button
-            onClick={() => setWelcomeDismissed(true)}
-            disabled={importing}
-          >
+          <Button onClick={closeWelcome} disabled={importing}>
             稍后手动添加
           </Button>
           <Button
