@@ -12,6 +12,8 @@ pub mod resolve;
 #[cfg(target_os = "windows")]
 pub mod schtasks;
 pub mod server;
+#[cfg(target_os = "windows")]
+pub mod session_end;
 pub mod singleton;
 pub mod speed;
 pub mod tmpl;

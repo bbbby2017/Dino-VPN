@@ -167,6 +167,11 @@ async fn init_silent_updater() {
 pub fn init_signal() {
     logging!(info, Type::Setup, "Initializing signal handlers...");
     clash_verge_signal::register(feat::quit);
+
+    // 正式构建是 GUI 子系统、没有控制台，上面基于控制台事件的 ctrl_shutdown /
+    // ctrl_logoff 在关机时不会被投递，需要窗口消息来兜底
+    #[cfg(target_os = "windows")]
+    crate::utils::session_end::register();
 }
 
 pub async fn init_work_config() {

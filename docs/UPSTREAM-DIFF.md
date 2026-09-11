@@ -3,7 +3,7 @@
 > 基线：[clash-verge-rev/clash-verge-rev](https://github.com/clash-verge-rev/clash-verge-rev) **v2.5.2**（已合并其全部修复与新功能）
 > 本文档基于与 v2.5.2 源码的逐文件比对整理，最后更新：2026-09-11
 
-**一句话总结**：绝大多数差异是品牌字符串替换；真正的行为差异集中在首页/窗口的界面重构、渠道自动配置、Windows 服务冷启动等待、按需 WebSocket 订阅这几处，另外内置自动更新与全部外链入口被彻底移除。
+**一句话总结**：绝大多数差异是品牌字符串替换；真正的行为差异集中在首页/窗口的界面重构、渠道自动配置、Windows 关机清理、Windows 服务冷启动等待、按需 WebSocket 订阅这几处，另外内置自动更新与全部外链入口被彻底移除。
 
 ---
 
@@ -55,6 +55,7 @@
 | 位置 | 差异 |
 |---|---|
 | `src-tauri/src/utils/channel.rs`（**新增**） | 渠道分发机制，见下节 |
+| `src-tauri/src/utils/session_end.rs`（**新增**） | Windows 关机 / 重启 / 注销时执行退出清理，见下节 |
 | `src-tauri/src/core/service.rs:579` | 新增 `wait_for_service_available_on_startup()`（Windows），以 200ms 间隔、最长 30s 重试探测服务 IPC 命名管道 |
 | `src-tauri/src/config/config.rs:83` | 上游无条件检查服务可用性、不可用就关掉 TUN；fork 改为**仅在 TUN 已开启且非管理员**时检查，并调用上述等待逻辑。解决冷启动时命名管道尚未创建就被误判为「服务不可用」、进而把持久化的 TUN 设置关掉的问题 |
 | `src-tauri/src/cmd/profile.rs:71` | `import_profile` 返回值由 `()` 改为新导入 profile 的 `uid`，供前端导入后直接选中 |
@@ -68,6 +69,28 @@
 2. 与 `app_home_dir/channel_id.txt` 缓存比对
 3. 渠道发生变化时，向 `https://v.dodoj.com/s/{channel_id}` 拉取订阅（15 秒超时），追加到 profile 列表、设为当前配置、强制重载内核并刷新界面
 4. 成功后写回缓存
+
+### Windows 关机清理（解决系统代理残留）
+
+`src-tauri/src/utils/session_end.rs`，由 `utils/resolve/mod.rs` 的 `init_signal()` 调用。
+
+**要解决的问题**：开着普通模式（系统代理）直接重启电脑、且未开启自启时，注册表里的代理设置残留指向已无程序监听的本地端口，导致重启后所有网页都打不开，必须再启动一次本应用才能恢复。
+
+**上游为什么会漏**：正式构建是 GUI 子系统（`main.rs` 的 `windows_subsystem = "windows"`），进程没有控制台；而 `crates/clash-verge-signal/src/windows.rs` 用的 `ctrl_shutdown()` / `ctrl_logoff()` 底层是 `SetConsoleCtrlHandler`，**必须有控制台才会被投递**。因此关机时退出清理根本不会执行。（dev 构建有控制台，所以开发时表现正常，容易掩盖此问题。）
+
+**实现**：在独立线程创建一个贯穿进程生命周期的**隐藏顶层窗口**并运行消息循环：
+
+- `WM_QUERYENDSESSION` → 返回 TRUE 同意结束，**此处不做清理**（若其他程序否决关机，代理不应已被关掉）
+- `WM_ENDSESSION`（`wparam != 0`）→ 调用 `feat::quit()`，与托盘退出、信号退出共用同一条清理路径
+
+两个易踩的坑：
+
+1. **不能复用主窗口**。轻量模式会调用 `WindowManager::destroy_main_window()`（`module/lightweight.rs`）销毁主窗口，而 Windows 只把会话结束消息发给顶层窗口 —— 窗口没了就收不到，偏偏长期挂机后关机正是本问题最常见的场景。
+2. **不能用 message-only 窗口**（父窗口设为 `HWND_MESSAGE`）。那类窗口收不到 `WM_QUERYENDSESSION` 这种面向顶层窗口的通知。所以用的是 `WS_OVERLAPPED` 且不带 `WS_VISIBLE` 的真实顶层窗口。
+
+**仍未覆盖**：任务管理器强制结束进程、程序崩溃、断电。这些情况下任何进程内清理机制都来不及执行。若要连这些也兜住，需改用 PAC 模式 —— PAC 脚本拉不到时 WinINET 会回退直连，使残留状态本身变得无害。两者不冲突，可叠加。
+
+配套：`src-tauri/Cargo.toml` 的 `windows-sys` 追加 `Win32_UI_WindowsAndMessaging`、`Win32_System_LibraryLoader` 特性（继承 workspace 配置，特性累加）。
 
 ### 前端按需 WebSocket 订阅
 
