@@ -119,10 +119,11 @@ mod app_init {
     /// Setup window state management
     pub fn setup_window_state(app: &tauri::App) -> Result<(), Box<dyn std::error::Error>> {
         logging!(info, Type::Setup, "初始化窗口状态管理...");
-        // 排除 SIZE：窗口尺寸始终采用代码里的默认值，避免首页展开右侧面板时
-        // 临时加宽的宽度被持久化，导致下次启动带着面板宽度但面板并未展开
-        let state_flags =
-            tauri_plugin_window_state::StateFlags::default() & !tauri_plugin_window_state::StateFlags::SIZE;
+        // 排除 SIZE 与 MAXIMIZED：窗口尺寸始终采用代码里的默认值，既避免首页展开
+        // 面板时临时加宽的宽度被持久化，也避免历史最大化状态绕过固定尺寸
+        let state_flags = tauri_plugin_window_state::StateFlags::default()
+            & !tauri_plugin_window_state::StateFlags::SIZE
+            & !tauri_plugin_window_state::StateFlags::MAXIMIZED;
         let window_state_plugin = tauri_plugin_window_state::Builder::new()
             .with_filename(files::WINDOW_STATE)
             .with_state_flags(state_flags)

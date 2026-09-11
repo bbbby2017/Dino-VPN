@@ -88,6 +88,10 @@ pub async fn build_new_window() -> Result<WebviewWindow, String> {
     .center()
     .decorations(DEFAULT_DECORATIONS)
     .fullscreen(false)
+    // 禁止鼠标拖拽改变大小；首页展开面板仍通过 set_size 程序化加宽
+    .resizable(false)
+    // 仅关 resizable 不够，Windows 下最大化按钮仍可用
+    .maximizable(false)
     .inner_size(DEFAULT_WIDTH, DEFAULT_HEIGHT)
     .min_inner_size(MINIMAL_WIDTH, MINIMAL_HEIGHT)
     .visible(false) // 等待主题色准备好后再展示，避免启动色差
